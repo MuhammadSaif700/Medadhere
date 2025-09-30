@@ -1,0 +1,88 @@
+# MedAdhere Project
+
+## Folders to ignore
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+## Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+## Database files
+*.db
+*.sqlite
+*.sqlite3
+
+## Model files (large binary files)
+*.h5
+*.pkl
+*.model
+data/models/
+data/pill_images/
+
+## Logs
+logs/
+*.log
+
+## IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+## OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+## Testing
+.coverage
+.pytest_cache/
+.tox/
+htmlcov/
+
+## Virtual environments
+venv/
+env/
+ENV/
+.env/
+
+## Jupyter notebooks
+.ipynb_checkpoints/
+
+## Temporary files
+temp/
+tmp/
+*.tmp
+*.bak
+
+## Image uploads (during development)
+uploads/
+user_images/

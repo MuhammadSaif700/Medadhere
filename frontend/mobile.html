@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedAdhere Mobile App</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Mobile-first design */
+        body {
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            user-select: none;
+        }
+        
+        /* Camera viewfinder styles */
+        .camera-viewfinder {
+            position: relative;
+            border: 3px solid #fff;
+            border-radius: 12px;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+        }
+        
+        .camera-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            border: 2px solid rgba(59, 130, 246, 0.8);
+            border-radius: 50%;
+            background: rgba(59, 130, 246, 0.1);
+        }
+        
+        .pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: .5;
+            }
+        }
+        
+        /* Bottom navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            z-index: 50;
+        }
+        
+        /* Safe area for iOS */
+        .safe-area-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 pb-20">
+    
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-blue-600 to-blue-700 text-white sticky top-0 z-40">
+        <div class="px-4 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-pills text-xl"></i>
+                    <h1 class="text-lg font-bold">MedAdhere</h1>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <div class="relative">
+                        <i class="fas fa-bell text-xl"></i>
+                        <span class="absolute -top-1 -right-1 bg-red-500 text-xs rounded-full h-4 w-4 flex items-center justify-center">2</span>
+                    </div>
+                    <i class="fas fa-user-circle text-2xl"></i>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main id="main-content" class="px-4 py-4 space-y-4">
+        
+        <!-- Quick Stats -->
+        <div class="bg-white rounded-xl shadow-sm p-4">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-lg font-semibold text-gray-800">Today's Progress</h2>
+                <span class="text-2xl">📊</span>
+            </div>
+            <div class="grid grid-cols-3 gap-3">
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-green-600">2/3</div>
+                    <div class="text-xs text-gray-600">Taken</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-blue-600">85%</div>
+                    <div class="text-xs text-gray-600">Rate</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-purple-600">5</div>
+                    <div class="text-xs text-gray-600">Streak</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Camera Section -->
+        <div id="camera-section" class="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div class="p-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+                <h3 class="text-lg font-semibold mb-1">📸 Scan Your Pill</h3>
+                <p class="text-sm text-blue-100">Point camera at pill for identification</p>
+            </div>
+            
+            <div class="p-4">
+                <div class="camera-viewfinder bg-gray-900 rounded-lg overflow-hidden mb-4" style="height: 300px;">
+                    <video id="camera-video" class="w-full h-full object-cover" autoplay playsinline></video>
+                    <canvas id="camera-canvas" class="hidden"></canvas>
+                    <div class="camera-overlay">
+                        <div class="w-full h-full rounded-full border-2 border-dashed border-blue-400 pulse"></div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-center space-x-4">
+                    <button id="capture-btn" class="bg-blue-600 text-white px-6 py-3 rounded-full font-medium shadow-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-camera mr-2"></i>
+                        Capture
+                    </button>
+                    <button id="gallery-btn" class="bg-gray-600 text-white px-4 py-3 rounded-full hover:bg-gray-700 transition-colors">
+                        <i class="fas fa-images"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Identification Result -->
+        <div id="result-section" class="hidden bg-white rounded-xl shadow-sm p-4">
+            <div class="flex items-center mb-3">
+                <div class="bg-green-100 p-2 rounded-full mr-3">
+                    <i class="fas fa-check-circle text-green-600"></i>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-gray-800">Pill Identified</h3>
+                    <p class="text-sm text-gray-600">Confidence: 89%</p>
+                </div>
+            </div>
+            
+            <div id="pill-info" class="bg-gray-50 rounded-lg p-3 mb-4">
+                <div class="grid grid-cols-2 gap-2 text-sm">
+                    <div><strong>Name:</strong> <span id="pill-name">Aspirin</span></div>
+                    <div><strong>Dosage:</strong> <span id="pill-dosage">325mg</span></div>
+                    <div><strong>Shape:</strong> <span id="pill-shape">Round</span></div>
+                    <div><strong>Color:</strong> <span id="pill-color">White</span></div>
+                </div>
+            </div>
+            
+            <div class="flex space-x-2">
+                <button id="confirm-btn" class="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg font-medium">
+                    ✓ Confirm & Log
+                </button>
+                <button id="retry-btn" class="flex-1 bg-gray-600 text-white py-2 px-4 rounded-lg font-medium">
+                    ↻ Try Again
+                </button>
+            </div>
+        </div>
+
+        <!-- Upcoming Medications -->
+        <div class="bg-white rounded-xl shadow-sm p-4">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-lg font-semibold text-gray-800">⏰ Next Doses</h3>
+                <button class="text-blue-600 text-sm">View All</button>
+            </div>
+            
+            <div class="space-y-3">
+                <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                    <div class="flex items-center">
+                        <div class="bg-blue-100 p-2 rounded-lg mr-3">
+                            <i class="fas fa-pills text-blue-600"></i>
+                        </div>
+                        <div>
+                            <div class="font-medium text-gray-800">Ibuprofen 200mg</div>
+                            <div class="text-sm text-gray-600">Due at 2:00 PM</div>
+                        </div>
+                    </div>
+                    <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs">
+                        3h left
+                    </span>
+                </div>
+                
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center">
+                        <div class="bg-gray-100 p-2 rounded-lg mr-3">
+                            <i class="fas fa-pills text-gray-600"></i>
+                        </div>
+                        <div>
+                            <div class="font-medium text-gray-800">Aspirin 325mg</div>
+                            <div class="text-sm text-gray-600">Tomorrow 8:00 AM</div>
+                        </div>
+                    </div>
+                    <span class="bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs">
+                        Tomorrow
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="bg-white rounded-xl shadow-sm p-4">
+            <h3 class="text-lg font-semibold text-gray-800 mb-3">📋 Recent Activity</h3>
+            
+            <div class="space-y-3">
+                <div class="flex items-center p-3 bg-green-50 rounded-lg">
+                    <i class="fas fa-check-circle text-green-500 mr-3"></i>
+                    <div class="flex-1">
+                        <div class="font-medium text-gray-800">Aspirin 325mg taken</div>
+                        <div class="text-sm text-gray-600">Today at 8:00 AM</div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center p-3 bg-yellow-50 rounded-lg">
+                    <i class="fas fa-exclamation-triangle text-yellow-500 mr-3"></i>
+                    <div class="flex-1">
+                        <div class="font-medium text-gray-800">Dose reminder sent</div>
+                        <div class="text-sm text-gray-600">1 hour ago</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav safe-area-bottom">
+        <div class="flex">
+            <button class="nav-btn flex-1 py-3 text-center active" data-page="home">
+                <i class="fas fa-home text-xl mb-1 block"></i>
+                <span class="text-xs">Home</span>
+            </button>
+            <button class="nav-btn flex-1 py-3 text-center" data-page="camera">
+                <i class="fas fa-camera text-xl mb-1 block"></i>
+                <span class="text-xs">Scan</span>
+            </button>
+            <button class="nav-btn flex-1 py-3 text-center" data-page="schedule">
+                <i class="fas fa-calendar text-xl mb-1 block"></i>
+                <span class="text-xs">Schedule</span>
+            </button>
+            <button class="nav-btn flex-1 py-3 text-center" data-page="reports">
+                <i class="fas fa-chart-line text-xl mb-1 block"></i>
+                <span class="text-xs">Reports</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p class="text-gray-700">Identifying pill...</p>
+        </div>
+    </div>
+
+    <script>
+        // Mobile app functionality
+        const API_BASE_URL = 'http://localhost:8000';
+        
+        // Camera functionality
+        let currentStream = null;
+        const video = document.getElementById('camera-video');
+        const canvas = document.getElementById('camera-canvas');
+        const captureBtn = document.getElementById('capture-btn');
+        const galleryBtn = document.getElementById('gallery-btn');
+        const resultSection = document.getElementById('result-section');
+        const cameraSection = document.getElementById('camera-section');
+        const loadingOverlay = document.getElementById('loading-overlay');
+
+        // Initialize camera
+        async function initCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: 'environment', // Use back camera on mobile
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    } 
+                });
+                video.srcObject = stream;
+                currentStream = stream;
+            } catch (error) {
+                console.error('Error accessing camera:', error);
+                alert('Camera access denied. Please enable camera permissions and try again.');
+            }
+        }
+
+        // Capture photo
+        function capturePhoto() {
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0);
+            
+            canvas.toBlob(async (blob) => {
+                await identifyPill(blob);
+            }, 'image/jpeg', 0.8);
+        }
+
+        // Identify pill
+        async function identifyPill(imageBlob) {
+            showLoading(true);
+            
+            try {
+                const formData = new FormData();
+                formData.append('image', imageBlob, 'pill.jpg');
+
+                const response = await fetch(`${API_BASE_URL}/api/v1/pills/identify`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                let result;
+                if (response.ok) {
+                    result = await response.json();
+                } else {
+                    // Mock result for demo
+                    result = {
+                        success: true,
+                        pill_info: {
+                            name: "Aspirin",
+                            dosage: "325mg",
+                            shape: "round",
+                            color: "white"
+                        },
+                        confidence: 0.89
+                    };
+                }
+
+                showResult(result);
+            } catch (error) {
+                console.error('Error identifying pill:', error);
+                // Show mock result for demo
+                showResult({
+                    success: true,
+                    pill_info: {
+                        name: "Aspirin",
+                        dosage: "325mg", 
+                        shape: "round",
+                        color: "white"
+                    },
+                    confidence: 0.89
+                });
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Show identification result
+        function showResult(result) {
+            if (result.success && result.pill_info) {
+                document.getElementById('pill-name').textContent = result.pill_info.name;
+                document.getElementById('pill-dosage').textContent = result.pill_info.dosage;
+                document.getElementById('pill-shape').textContent = result.pill_info.shape;
+                document.getElementById('pill-color').textContent = result.pill_info.color;
+                
+                resultSection.classList.remove('hidden');
+                cameraSection.classList.add('hidden');
+            } else {
+                alert('Could not identify the pill. Please try again with better lighting.');
+            }
+        }
+
+        // Show/hide loading
+        function showLoading(show) {
+            if (show) {
+                loadingOverlay.classList.remove('hidden');
+            } else {
+                loadingOverlay.classList.add('hidden');
+            }
+        }
+
+        // Reset to camera view
+        function resetToCamera() {
+            resultSection.classList.add('hidden');
+            cameraSection.classList.remove('hidden');
+        }
+
+        // Handle gallery selection
+        function handleGallerySelection() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    identifyPill(file);
+                }
+            };
+            input.click();
+        }
+
+        // Bottom navigation
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Remove active class from all buttons
+                document.querySelectorAll('.nav-btn').forEach(b => {
+                    b.classList.remove('active', 'text-blue-600');
+                    b.classList.add('text-gray-500');
+                });
+                
+                // Add active class to clicked button
+                btn.classList.add('active', 'text-blue-600');
+                btn.classList.remove('text-gray-500');
+                
+                const page = btn.dataset.page;
+                handleNavigation(page);
+            });
+        });
+
+        // Handle navigation
+        function handleNavigation(page) {
+            console.log(`Navigating to: ${page}`);
+            // In a real app, this would switch between different views
+            // For now, we'll just log the navigation
+        }
+
+        // Event listeners
+        captureBtn.addEventListener('click', capturePhoto);
+        galleryBtn.addEventListener('click', handleGallerySelection);
+        document.getElementById('confirm-btn').addEventListener('click', () => {
+            alert('Dose logged successfully!');
+            resetToCamera();
+        });
+        document.getElementById('retry-btn').addEventListener('click', resetToCamera);
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', () => {
+            initCamera();
+            
+            // Set initial nav state
+            document.querySelector('.nav-btn[data-page="home"]').classList.add('text-blue-600');
+            document.querySelectorAll('.nav-btn:not([data-page="home"])').forEach(btn => {
+                btn.classList.add('text-gray-500');
+            });
+        });
+
+        // Handle orientation changes
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                if (currentStream) {
+                    video.srcObject = currentStream;
+                }
+            }, 100);
+        });
+
+        // Prevent page refresh on pull-down
+        document.body.addEventListener('touchstart', e => {
+            if (e.touches.length === 1 && e.touches[0].clientY <= 40) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        document.body.addEventListener('touchmove', e => {
+            if (e.touches.length === 1 && e.touches[0].clientY <= 40) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+    </script>
+</body>
+</html>

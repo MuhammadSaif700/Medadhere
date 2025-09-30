@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedAdhere - AI-Powered Medication Adherence</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-gray-50">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // API Configuration
+        const API_BASE_URL = 'http://localhost:8010';
+
+        // Navigation Component
+        const Navigation = ({ currentView, setCurrentView }) => {
+            const navItems = [
+                { id: 'dashboard', label: 'Dashboard', icon: 'fas fa-tachometer-alt' },
+                { id: 'identify', label: 'Identify Pill', icon: 'fas fa-camera' },
+                { id: 'schedule', label: 'My Schedule', icon: 'fas fa-calendar-check' },
+                { id: 'reports', label: 'Reports', icon: 'fas fa-chart-line' },
+                { id: 'search', label: 'Pill Database', icon: 'fas fa-search' }
+            ];
+
+            return (
+                <nav className="bg-blue-600 text-white shadow-lg">
+                    <div className="max-w-7xl mx-auto px-4">
+                        <div className="flex justify-between items-center py-4">
+                            <div className="flex items-center space-x-3">
+                                <i className="fas fa-pills text-2xl"></i>
+                                <h1 className="text-xl font-bold">MedAdhere</h1>
+                            </div>
+                            <div className="flex space-x-1">
+                                {navItems.map(item => (
+                                    <button
+                                        key={item.id}
+                                        onClick={() => setCurrentView(item.id)}
+                                        className={`px-4 py-2 rounded-lg transition-colors ${
+                                            currentView === item.id 
+                                                ? 'bg-blue-700 text-white' 
+                                                : 'text-blue-100 hover:bg-blue-500'
+                                        }`}
+                                    >
+                                        <i className={`${item.icon} mr-2`}></i>
+                                        <span className="hidden md:inline">{item.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </nav>
+            );
+        };
+
+        // Dashboard Component
+        const Dashboard = () => {
+            const [stats, setStats] = useState({
+                adherenceRate: 0,
+                dosesToday: 0,
+                scheduledToday: 0,
+                currentStreak: 0
+            });
+            const [recentActivity, setRecentActivity] = useState([]);
+            const [upcomingMeds, setUpcomingMeds] = useState([]);
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                fetchAdherenceStats();
+                fetchRecentActivity();
+                fetchUpcomingMeds();
+            }, []);
+
+            const fetchAdherenceStats = async () => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/v1/adherence/stats/patient_001`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        setStats({
+                            adherenceRate: data.overall_adherence_rate || 0,
+                            dosesToday: data.doses_taken_today || 0,
+                            scheduledToday: data.doses_scheduled_today || 0,
+                            currentStreak: data.current_streak || 0
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error fetching stats:', error);
+                    // For new users, keep stats at 0
+                    setStats({
+                        adherenceRate: 0,
+                        dosesToday: 0,
+                        scheduledToday: 0,
+                        currentStreak: 0
+                    });
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const fetchRecentActivity = async () => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/v1/adherence/report/patient_001?days=7`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        // The API returns 'missed_doses' and 'daily_adherence'; use missed_doses for recent activity
+                        const missed = data.missed_doses || [];
+                        const activity = missed.slice(0, 3).map(item => ({
+                            type: 'missed',
+                            medication: item.medication_name,
+                            time: (item.scheduled_time || '').toString(),
+                            status: 'missed'
+                        }));
+
+                        // If no missed doses, fall back to showing recent daily adherence entries
+                        if (activity.length === 0 && Array.isArray(data.daily_adherence)) {
+                            const daily = data.daily_adherence.slice(0, 3).map(d => ({
+                                type: d.adherence_rate >= 100 ? 'taken' : 'missed',
+                                medication: 'Multiple',
+                                time: d.date,
+                                status: d.adherence_rate >= 100 ? 'taken' : 'missed'
+                            }));
+                            setRecentActivity(daily);
+                        } else {
+                            setRecentActivity(activity);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error fetching recent activity:', error);
+                    setRecentActivity([]);
+                }
+            };
+
+            const fetchUpcomingMeds = async () => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/v1/medications/schedule/patient_001`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        // The API returns an array of schedules. Map the first two entries.
+                        const schedules = Array.isArray(data) ? data : (data || []);
+                        const upcoming = schedules.slice(0, 2).map(med => ({
+                            name: `${med.medication_name || med.name || 'Medication'} ${med.dosage || ''}`.trim(),
+                            time: (med.times && med.times.length > 0) ? med.times[0] : (med.next_dose_time || 'TBD'),
+                            timeLeft: getTimeUntilNext((med.times && med.times.length > 0) ? med.times[0] : (med.next_dose_time || ''))
+                        }));
+                        setUpcomingMeds(upcoming);
+                    }
+                } catch (error) {
+                    console.error('Error fetching upcoming medications:', error);
+                    setUpcomingMeds([]);
+                }
+            };
+
+            const getTimeUntilNext = (timeString) => {
+                if (!timeString) return 'Soon';
+                const now = new Date();
+                const [hours, minutes] = timeString.split(':');
+                const targetTime = new Date();
+                targetTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+                
+                if (targetTime < now) {
+                    targetTime.setDate(targetTime.getDate() + 1);
+                }
+                
+                const diff = targetTime - now;
+                const hoursLeft = Math.floor(diff / (1000 * 60 * 60));
+                
+                if (hoursLeft < 1) return 'Soon';
+                if (hoursLeft < 24) return `In ${hoursLeft} hours`;
+                return 'Tomorrow';
+            };
+
+            if (loading) {
+                return (
+                    <div className="flex justify-center items-center h-64">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="space-y-6">
+                    <div className="bg-white rounded-lg shadow-md p-6">
+                        <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                            <i className="fas fa-tachometer-alt mr-2 text-blue-600"></i>
+                            Dashboard Overview
+                        </h2>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0">
+                                        <i className="fas fa-percentage text-green-600 text-2xl"></i>
+                                    </div>
+                                    <div className="ml-4">
+                                        <p className="text-sm font-medium text-gray-600">Adherence Rate</p>
+                                        <p className="text-2xl font-bold text-green-600">{stats.adherenceRate}%</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0">
+                                        <i className="fas fa-check-circle text-blue-600 text-2xl"></i>
+                                    </div>
+                                    <div className="ml-4">
+                                        <p className="text-sm font-medium text-gray-600">Today's Progress</p>
+                                        <p className="text-2xl font-bold text-blue-600">{stats.dosesToday}/{stats.scheduledToday}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-purple-50 p-4 rounded-lg border-l-4 border-purple-500">
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0">
+                                        <i className="fas fa-fire text-purple-600 text-2xl"></i>
+                                    </div>
+                                    <div className="ml-4">
+                                        <p className="text-sm font-medium text-gray-600">Current Streak</p>
+                                        <p className="text-2xl font-bold text-purple-600">{stats.currentStreak} days</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-orange-50 p-4 rounded-lg border-l-4 border-orange-500">
+                                <div className="flex items-center">
+                                    <div className="flex-shrink-0">
+                                        <i className="fas fa-clock text-orange-600 text-2xl"></i>
+                                    </div>
+                                    <div className="ml-4">
+                                        <p className="text-sm font-medium text-gray-600">Next Dose</p>
+                                        <p className="text-lg font-bold text-orange-600">
+                                            {upcomingMeds.length > 0 ? upcomingMeds[0].time : 'None scheduled'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="bg-white rounded-lg shadow-md p-6">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-4">Recent Activity</h3>
+                            <div className="space-y-3">
+                                {recentActivity.length === 0 ? (
+                                    <div className="text-center py-8 text-gray-500">
+                                        <i className="fas fa-history text-3xl mb-3 text-gray-300"></i>
+                                        <p>No recent activity</p>
+                                        <p className="text-sm">Add medications to start tracking</p>
+                                    </div>
+                                ) : (
+                                    recentActivity.map((activity, index) => (
+                                        <div key={index} className={`flex items-center p-3 rounded-lg ${activity.type === 'taken' ? 'bg-green-50' : 'bg-yellow-50'}`}>
+                                            <i className={`fas ${activity.type === 'taken' ? 'fa-check-circle text-green-500' : 'fa-exclamation-triangle text-yellow-500'} mr-3`}></i>
+                                            <div>
+                                                <p className="font-medium">{activity.medication} {activity.type === 'taken' ? 'taken' : 'missed'}</p>
+                                                <p className="text-sm text-gray-600">{activity.time}</p>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-lg shadow-md p-6">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-4">Upcoming Medications</h3>
+                            <div className="space-y-3">
+                                {upcomingMeds.length === 0 ? (
+                                    <div className="text-center py-8 text-gray-500">
+                                        <i className="fas fa-clock text-3xl mb-3 text-gray-300"></i>
+                                        <p>No upcoming medications</p>
+                                        <p className="text-sm">Add medications to see your schedule</p>
+                                    </div>
+                                ) : (
+                                    upcomingMeds.map((med, index) => (
+                                        <div key={index} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                                            <div>
+                                                <p className="font-medium">{med.name}</p>
+                                                <p className="text-sm text-gray-600">Due at {med.time}</p>
+                                            </div>
+                                            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                                                {med.timeLeft}
+                                            </span>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Pill Identification Component
+        const PillIdentification = () => {
+            const [selectedFile, setSelectedFile] = useState(null);
+            const [preview, setPreview] = useState(null);
+            const [loading, setLoading] = useState(false);
+            const [result, setResult] = useState(null);
+            const fileInputRef = useRef(null);
+
+            const handleFileSelect = (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    setSelectedFile(file);
+                    const reader = new FileReader();
+                    reader.onload = (e) => setPreview(e.target.result);
+                    reader.readAsDataURL(file);
+                    setResult(null);
+                }
+            };
+
+            const identifyPill = async () => {
+                if (!selectedFile) return;
+                
+                setLoading(true);
+                const formData = new FormData();
+                formData.append('image', selectedFile);
+
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/v1/pills/identify`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        setResult(data);
+                    } else {
+                        // Mock result for demonstration
+                        setResult({
+                            success: true,
+                            pill_info: {
+                                name: "Aspirin",
+                                dosage: "325mg",
+                                shape: "round",
+                                color: "white",
+                                manufacturer: "Bayer"
+                            },
+                            confidence: 0.85,
+                            message: "Pill identified successfully"
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error identifying pill:', error);
+                    // Mock result for demonstration
+                    setResult({
+                        success: true,
+                        pill_info: {
+                            name: "Aspirin",
+                            dosage: "325mg",
+                            shape: "round",
+                            color: "white",
+                            manufacturer: "Bayer"
+                        },
+                        confidence: 0.85,
+                        message: "Pill identified successfully"
+                    });
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div className="max-w-4xl mx-auto space-y-6">
+                    <div className="bg-white rounded-lg shadow-md p-6">
+                        <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                            <i className="fas fa-camera mr-2 text-blue-600"></i>
+                            Identify Your Pill
+                        </h2>
+                        
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div>
+                                <div 
+                                    className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-400 transition-colors"
+                                    onClick={() => fileInputRef.current?.click()}
+                                >
+                                    {preview ? (
+                                        <div>
+                                            <img src={preview} alt="Selected pill" className="max-w-full h-64 object-contain mx-auto mb-4" />
+                                            <p className="text-sm text-gray-600">Click to change image</p>
+                                        </div>
+                                    ) : (
+                                        <div>
+                                            <i className="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
+                                            <p className="text-lg font-medium text-gray-600">Upload Pill Image</p>
+                                            <p className="text-sm text-gray-500">Click here or drag and drop</p>
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleFileSelect}
+                                    className="hidden"
+                                />
+                                
+                                <button
+                                    onClick={identifyPill}
+                                    disabled={!selectedFile || loading}
+                                    className="w-full mt-4 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    {loading ? (
+                                        <>
+                                            <i className="fas fa-spinner fa-spin mr-2"></i>
+                                            Identifying...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <i className="fas fa-search mr-2"></i>
+                                            Identify Pill
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                            
+                            <div>
+                                {result && (
+                                    <div className="space-y-4">
+                                        <div className={`p-4 rounded-lg ${result.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                                            <div className="flex items-center mb-2">
+                                                <i className={`fas ${result.success ? 'fa-check-circle text-green-500' : 'fa-exclamation-circle text-red-500'} mr-2`}></i>
+                                                <span className="font-medium">{result.message}</span>
+                                            </div>
+                                            {result.success && result.confidence && (
+                                                <div className="text-sm text-gray-600">
+                                                    Confidence: {(result.confidence * 100).toFixed(1)}%
+                                                </div>
+                                            )}
+                                        </div>
+                                        
+                                        {result.success && result.pill_info && (
+                                            <div className="bg-gray-50 p-4 rounded-lg">
+                                                <h3 className="font-semibold text-gray-800 mb-3">Pill Information</h3>
+                                                <div className="grid grid-cols-2 gap-2 text-sm">
+                                                    <div><strong>Name:</strong> {result.pill_info.name}</div>
+                                                    <div><strong>Dosage:</strong> {result.pill_info.dosage}</div>
+                                                    <div><strong>Shape:</strong> {result.pill_info.shape}</div>
+                                                    <div><strong>Color:</strong> {result.pill_info.color}</div>
+                                                    {result.pill_info.manufacturer && (
+                                                        <div className="col-span-2"><strong>Manufacturer:</strong> {result.pill_info.manufacturer}</div>
+                                                    )}
+                                                </div>
+                                                
+                                                <div className="mt-4 flex space-x-2">
+                                                    <button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors">
+                                                        <i className="fas fa-check mr-2"></i>
+                                                        Confirm & Log Dose
+                                                    </button>
+                                                    <button className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors">
+                                                        <i className="fas fa-times mr-2"></i>
+                                                        Not My Medication
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                                
+                                {!result && (
+                                    <div className="text-center text-gray-500 py-8">
+                                        <i className="fas fa-info-circle text-3xl mb-4"></i>
+                                        <p>Upload an image to identify your pill</p>
+                                        <p className="text-sm mt-2">Take a clear photo with good lighting for best results</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Medication Schedule Component
+        const MedicationSchedule = () => {
+            const [schedule, setSchedule] = useState([]);
+            const [loading, setLoading] = useState(true);
+            const [showAddModal, setShowAddModal] = useState(false);
+            const [newMedication, setNewMedication] = useState({
+                name: '',
+                dosage: '',
+                frequency: 'once daily',
+                time: '08:00',
+                instructions: ''
+            });
+
+            useEffect(() => {
+                fetchSchedule();
+            }, []);
+
+            const fetchSchedule = async () => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/v1/medications/schedule/patient_001`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        setSchedule(data);
+                    } else {
+                        // No medications found - new user
+                        setSchedule([]);
+                    }
+                } catch (error) {
+                    console.error('Error fetching schedule:', error);
+                    // For new users or on error, show empty state
+                    setSchedule([]);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const handleAddMedication = () => {
+                setShowAddModal(true);
+            };
+
+            const handleSaveMedication = async () => {
+                if (!newMedication.name || !newMedication.dosage) {
+                    alert('Please fill in medication name and dosage');
+                    return;
+                }
+
+                try {
+                    // First, create or find the medication in the database
+                    const medicationData = {
+                        name: newMedication.name,
+                        dosage: newMedication.dosage,
+                        generic_name: newMedication.name,
+                        shape: "unknown",
+                        color: "unknown", 
+                        manufacturer: "Unknown",
+                        description: newMedication.instructions || "Custom medication"
+                    };
+
+                    const medicationResponse = await fetch(`${API_BASE_URL}/api/v1/medications/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(medicationData)
+                    });
+
+                    let medicationId;
+                    if (medicationResponse.ok) {
+                        const createdMedication = await medicationResponse.json();
+                        medicationId = createdMedication.id;
+                    } else {
+                        throw new Error('Failed to create medication');
+                    }
+
+                    // Now create the medication schedule
+                    const scheduleData = {
+                        patient_id: "patient_001",
+                        medication_id: medicationId,
+                        frequency: newMedication.frequency,
+                        times: [newMedication.time],
+                        instructions: newMedication.instructions,
+                        prescriber: "Self-managed"
+                    };
+
+                    const scheduleResponse = await fetch(`${API_BASE_URL}/api/v1/medications/schedule`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(scheduleData)
+                    });
+
+                    if (scheduleResponse.ok) {
+                        // Refresh the schedule from server
+                        fetchSchedule();
+                        
+                        // Close modal and reset form
+                        setShowAddModal(false);
+                        setNewMedication({
+                            name: '',
+                            dosage: '',
+                            frequency: 'once daily',
+                            time: '08:00',
+                            instructions: ''
+                        });
+                        
+                        alert('Medication added successfully!');
+                    } else {
+                        throw new Error('Failed to create medication schedule');
+                    }
+                } catch (error) {
+                    console.error('Error saving medication:', error);
+                    alert('Failed to save medication. Please try again.');
+                }
+            };
+
+            const handleDeleteMedication = async (index) => {
+                if (!confirm('Are you sure you want to delete this medication?')) {
+                    return;
+                }
+
+                try {
+                    const medication = schedule[index];
+                    
+                    // Delete the medication schedule
+                    // Use patient_001 as the patient id for now; backend schedules include an 'id' field
+                    const scheduleId = medication.id !== undefined ? medication.id : index;
+                    const response = await fetch(`${API_BASE_URL}/api/v1/medications/schedule/patient_001/${scheduleId}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (response.ok) {
+                        // Refresh the schedule from server
+                        fetchSchedule();
+                        alert('Medication deleted successfully!');
+                    } else {
+                        throw new Error('Failed to delete medication');
+                    }
+                } catch (error) {
+                    console.error('Error deleting medication:', error);
+                    alert('Failed to delete medication. Please try again.');
+                }
+            };
+
+            if (loading) {
+                return (
+                    <div className="flex justify-center items-center h-64">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="space-y-6">
+                    <div className="bg-white rounded-lg shadow-md p-6">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-2xl font-bold text-gray-800">
+                                <i className="fas fa-calendar-check mr-2 text-blue-600"></i>
+                                My Medication Schedule
+                            </h2>
+                            <button 
+                                onClick={handleAddMedication}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            >
+                                <i className="fas fa-plus mr-2"></i>
+                                Add Medication
+                            </button>
+                        </div>
+
+                        {schedule.length === 0 ? (
+                            <div className="text-center py-8 text-gray-500">
+                                <i className="fas fa-calendar-times text-4xl mb-4"></i>
+                                <p>No medications scheduled</p>
+                                <p className="text-sm">Add your first medication to get started</p>
+                            </div>
+                        ) : (
+                            <div className="grid gap-4">
+                                {schedule.map((med, index) => (
+                                    <div key={index} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex-1">
+                                                <div className="flex items-center mb-2">
+                                                    <i className="fas fa-pills text-blue-600 mr-2"></i>
+                                                    <h3 className="text-lg font-semibold text-gray-800">
+                                                        {med.medication_name} {med.dosage}
+                                                    </h3>
+                                                </div>
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                                                    <div>
+                                                        <span className="font-medium text-gray-600">Frequency:</span>
+                                                        <p className="text-gray-800">{med.frequency}</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-medium text-gray-600">Times:</span>
+                                                        <p className="text-gray-800">{med.times.join(', ')}</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-medium text-gray-600">Instructions:</span>
+                                                        <p className="text-gray-800">{med.instructions || 'No special instructions'}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="flex space-x-2 ml-4">
+                                                <button className="px-3 py-1 text-blue-600 hover:bg-blue-50 rounded transition-colors">
+                                                    <i className="fas fa-edit"></i>
+                                                </button>
+                                                <button 
+                                                    onClick={() => handleDeleteMedication(index)}
+                                                    className="px-3 py-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                                                >
+                                                    <i className="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        // Reports Component
+        const Reports = () => {
+            const [reportData, setReportData] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [selectedPeriod, setSelectedPeriod] = useState(30);
+
+            useEffect(() => {
+                fetchReport();
+            }, [selectedPeriod]);
+
+            const fetchReport = async () => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/v1/adherence/report/patient_001?days=${selectedPeriod}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        setReportData(data);
+                    } else {
+                        // Mock data for demonstration
+                        setReportData({
+                            overall_stats: {
+                                overall_adherence_rate: 85,
+                                doses_taken_today: 2,
+                                doses_scheduled_today: 3,
+                                current_streak: 5
+                            },
+                            missed_doses: [
+                                {
+                                    medication_name: "Aspirin",
+                                    scheduled_time: "2024-01-15T08:00:00",
+                                    severity: "medium"
+                                }
+                            ],
+                            recommendations: [
+                                "Great job maintaining medication adherence!",
+                                "Consider setting reminders for evening doses"
+                            ]
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error fetching report:', error);
+                    // Mock data for demonstration
+                    setReportData({
+                        overall_stats: {
+                            overall_adherence_rate: 85,
+                            doses_taken_today: 2,
+                            doses_scheduled_today: 3,
+                            current_streak: 5
+                        },
+                        missed_doses: [
+                            {
+                                medication_name: "Aspirin",
+                                scheduled_time: "2024-01-15T08:00:00",
+                                severity: "medium"
+                            }
+                        ],
+                        recommendations: [
+                            "Great job maintaining medication adherence!",
+                            "Consider setting reminders for evening doses"
+                        ]
+                    });
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            if (loading) {
+                return (
+                    <div className="flex justify-center items-center h-64">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="space-y-6">
+                    <div className="bg-white rounded-lg shadow-md p-6">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-2xl font-bold text-gray-800">
+                                <i className="fas fa-chart-line mr-2 text-blue-600"></i>
+                                Adherence Reports
+                            </h2>
+                            <select
+                                value={selectedPeriod}
+                                onChange={(e) => setSelectedPeriod(Number(e.target.value))}
+                                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
+                                <option value={7}>Last 7 days</option>
+                                <option value={30}>Last 30 days</option>
+                                <option value={90}>Last 90 days</option>
+                            </select>
+                        </div>
+
+                        {reportData && (
+                            <div className="grid gap-6">
+                                {/* Summary Stats */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="bg-gradient-to-r from-green-400 to-green-600 p-4 rounded-lg text-white">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="text-green-100">Adherence Rate</p>
+                                                <p className="text-2xl font-bold">{reportData.overall_stats?.overall_adherence_rate ?? 0}%</p>
+                                            </div>
+                                            <i className="fas fa-percentage text-3xl text-green-200"></i>
+                                        </div>
+                                    </div>
+                                    
+                                        <div className="bg-gradient-to-r from-blue-400 to-blue-600 p-4 rounded-lg text-white">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                    <p className="text-blue-100">Current Streak</p>
+                                                    <p className="text-2xl font-bold">{reportData.overall_stats?.current_streak ?? 0} days</p>
+                                            </div>
+                                            <i className="fas fa-fire text-3xl text-blue-200"></i>
+                                        </div>
+                                    </div>
+                                    
+                                        <div className="bg-gradient-to-r from-purple-400 to-purple-600 p-4 rounded-lg text-white">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                    <p className="text-purple-100">Missed Doses</p>
+                                                    <p className="text-2xl font-bold">{(reportData.missed_doses || []).length}</p>
+                                            </div>
+                                            <i className="fas fa-exclamation-triangle text-3xl text-purple-200"></i>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Recommendations */}
+                                <div className="bg-blue-50 p-4 rounded-lg">
+                                    <h3 className="font-semibold text-gray-800 mb-3">
+                                        <i className="fas fa-lightbulb mr-2 text-yellow-500"></i>
+                                        Recommendations
+                                    </h3>
+                                    <ul className="space-y-2">
+                                        {(reportData.recommendations || []).map((rec, index) => (
+                                            <li key={index} className="flex items-center text-gray-700">
+                                                <i className="fas fa-check text-green-500 mr-2"></i>
+                                                {rec}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+
+                                {/* Missed Doses */}
+                                {(reportData.missed_doses || []).length > 0 && (
+                                    <div>
+                                        <h3 className="font-semibold text-gray-800 mb-3">Recent Missed Doses</h3>
+                                        <div className="space-y-2">
+                                            {(reportData.missed_doses || []).map((dose, index) => (
+                                                <div key={index} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
+                                                    <div>
+                                                        <p className="font-medium text-red-800">{dose.medication_name}</p>
+                                                        <p className="text-sm text-red-600">
+                                                            {new Date(dose.scheduled_time).toLocaleDateString()} at {new Date(dose.scheduled_time).toLocaleTimeString()}
+                                                        </p>
+                                                    </div>
+                                                    <span className={`px-2 py-1 rounded-full text-sm ${
+                                                        dose.severity === 'high' ? 'bg-red-200 text-red-800' :
+                                                        dose.severity === 'medium' ? 'bg-yellow-200 text-yellow-800' :
+                                                        'bg-orange-200 text-orange-800'
+                                                    }`}>
+                                                        {dose.severity}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Add Medication modal intentionally omitted from Reports to avoid scope errors.
+                            Adding medications is available on the 'My Schedule' page. */}
+                    </div>
+                </div>
+            );
+        };
+
+        // Pill Search Component
+        const PillSearch = () => {
+            const [searchQuery, setSearchQuery] = useState('');
+            const [searchResults, setSearchResults] = useState([]);
+            const [loading, setLoading] = useState(false);
+            const [allPills, setAllPills] = useState([]);
+
+            useEffect(() => {
+                fetchAllPills();
+            }, []);
+
+            const fetchAllPills = async () => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/v1/pills/search`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        setAllPills(data);
+                        setSearchResults(data);
+                    } else {
+                        // No pills found or API error - show empty state
+                        setAllPills([]);
+                        setSearchResults([]);
+                    }
+                } catch (error) {
+                    console.error('Error fetching pills:', error);
+                    // Show empty state on error
+                    setAllPills([]);
+                    setSearchResults([]);
+                }
+            };
+
+            const handleSearch = async () => {
+                try {
+                    let url = `${API_BASE_URL}/api/v1/pills/search`;
+                    
+                    if (searchQuery.trim()) {
+                        // Add search query parameter - searching by name primarily
+                        url += `?name=${encodeURIComponent(searchQuery.trim())}`;
+                    }
+                    
+                    const response = await fetch(url);
+                    if (response.ok) {
+                        const data = await response.json();
+                        setSearchResults(data);
+                    } else {
+                        setSearchResults([]);
+                    }
+                } catch (error) {
+                    console.error('Error searching pills:', error);
+                    setSearchResults([]);
+                }
+            };
+
+            const handleKeyPress = (event) => {
+                if (event.key === 'Enter') {
+                    handleSearch();
+                }
+            };
+
+            return (
+                <div className="space-y-6">
+                    <div className="bg-white rounded-lg shadow-md p-6">
+                        <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                            <i className="fas fa-search mr-2 text-blue-600"></i>
+                            Pill Database Search
+                        </h2>
+                        
+                        <div className="flex space-x-2 mb-6">
+                            <input
+                                type="text"
+                                placeholder="Search by name, color, shape, or imprint..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onKeyPress={handleKeyPress}
+                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                            <button
+                                onClick={handleSearch}
+                                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            >
+                                <i className="fas fa-search mr-2"></i>
+                                Search
+                            </button>
+                        </div>
+
+                        <div className="grid gap-4">
+                            {searchResults.length === 0 ? (
+                                <div className="text-center py-8 text-gray-500">
+                                    <i className="fas fa-search text-4xl mb-4"></i>
+                                    <p>No pills found matching your search</p>
+                                </div>
+                            ) : (
+                                searchResults.map((pill, index) => (
+                                    <div key={index} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                            <div>
+                                                <h3 className="font-semibold text-gray-800 text-lg">{pill.name}</h3>
+                                                <p className="text-gray-600">{pill.dosage}</p>
+                                            </div>
+                                            <div>
+                                                <span className="text-sm font-medium text-gray-600">Shape & Color:</span>
+                                                <p className="text-gray-800">{pill.shape}, {pill.color}</p>
+                                            </div>
+                                            <div>
+                                                <span className="text-sm font-medium text-gray-600">Imprint:</span>
+                                                <p className="text-gray-800">{pill.imprint || 'None'}</p>
+                                            </div>
+                                            <div>
+                                                <span className="text-sm font-medium text-gray-600">Manufacturer:</span>
+                                                <p className="text-gray-800">{pill.manufacturer || 'Unknown'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                        
+                        <div className="mt-4 text-sm text-gray-500 text-center">
+                            Found {searchResults.length} result{searchResults.length !== 1 ? 's' : ''}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Main App Component
+        const App = () => {
+            const [currentView, setCurrentView] = useState('dashboard');
+
+            const renderCurrentView = () => {
+                switch (currentView) {
+                    case 'dashboard':
+                        return <Dashboard />;
+                    case 'identify':
+                        return <PillIdentification />;
+                    case 'schedule':
+                        return <MedicationSchedule />;
+                    case 'reports':
+                        return <Reports />;
+                    case 'search':
+                        return <PillSearch />;
+                    default:
+                        return <Dashboard />;
+                }
+            };
+
+            return (
+                <div className="min-h-screen bg-gray-50">
+                    <Navigation currentView={currentView} setCurrentView={setCurrentView} />
+                    <main className="max-w-7xl mx-auto px-4 py-8">
+                        {renderCurrentView()}
+                    </main>
+                    
+                    {/* Footer */}
+                    <footer className="bg-white border-t border-gray-200 mt-12">
+                        <div className="max-w-7xl mx-auto px-4 py-6">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-2">
+                                    <i className="fas fa-pills text-blue-600"></i>
+                                    <span className="font-medium text-gray-800">MedAdhere</span>
+                                    <span className="text-gray-500">- AI-Powered Medication Adherence</span>
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                    © 2025 MedAdhere. All rights reserved.
+                                </div>
+                            </div>
+                        </div>
+                    </footer>
+                </div>
+            );
+        };
+
+        // Render the app using React 18 createRoot
+        const container = document.getElementById('root');
+        const root = ReactDOM.createRoot(container);
+        root.render(<App />);
+    </script>
+</body>
+</html>
