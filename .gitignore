@@ -18,71 +18,48 @@ parts/
 sdist/
 var/
 wheels/
-share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
+.venv/
+venv/
+ENV/
 
-## Environment files
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-## Database files
-*.db
-*.sqlite
-*.sqlite3
-
-## Model files (large binary files)
-*.h5
-*.pkl
-*.model
-data/models/
-data/pill_images/
-
-## Logs
-logs/
-*.log
-
-## IDE files
+# IDEs
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
-## OS generated files
+# OS
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
 
-## Testing
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Data files (exclude from git, but keep structure)
+data/*.json
+!data/.gitkeep
+
+# Logs
+*.log
+logs/
+
+# Test coverage
 .coverage
-.pytest_cache/
-.tox/
 htmlcov/
+.pytest_cache/
 
-## Virtual environments
-venv/
-env/
-ENV/
-.env/
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-## Jupyter notebooks
-.ipynb_checkpoints/
-
-## Temporary files
-temp/
-tmp/
-*.tmp
-*.bak
-
-## Image uploads (during development)
-uploads/
-user_images/
+# Production builds
+frontend/build/
+frontend/dist/
