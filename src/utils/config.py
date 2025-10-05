@@ -49,10 +49,6 @@ class Settings(BaseSettings):
     adherence_critical_threshold: float = 0.6  # 60%
     missed_dose_alert_delay_minutes: int = 30
     
-    # Demo / seeding behavior
-    # Set to True only for demo/testing; false by default to avoid creating sample data
-    seed_demo_data: bool = False
-    
     class Config:
         env_file = ".env"
         case_sensitive = False

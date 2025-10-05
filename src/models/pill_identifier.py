@@ -192,6 +192,35 @@ class PillIdentifier:
     def get_all_pills(self) -> List[Dict[str, Any]]:
         """Get all pills in the database"""
         return list(self.pill_database.values())
+
+    def add_pill(self, pill_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Add a pill entry to the in-memory database and persist it to disk.
+
+        Returns the stored pill record including the generated pill id/key.
+        """
+        try:
+            # Generate a stable key from name and dosage
+            base_key = f"{pill_data.get('name','pill').strip().lower().replace(' ', '_')}_{pill_data.get('dosage','').strip().lower().replace(' ', '_')}"
+            key = base_key
+            counter = 1
+            while key in self.pill_database:
+                key = f"{base_key}_{counter}"
+                counter += 1
+
+            # Ensure directory exists
+            db_dir = Path('data')
+            db_dir.mkdir(parents=True, exist_ok=True)
+
+            self.pill_database[key] = pill_data
+
+            # Persist to disk
+            with open(db_dir / 'pill_database.json', 'w') as f:
+                json.dump(self.pill_database, f, indent=2)
+
+            return {"id": key, **pill_data}
+        except Exception as e:
+            logger.error(f"Error adding pill: {e}")
+            raise
     
     def search_pills(self, criteria: Dict[str, str]) -> List[Dict[str, Any]]:
         """

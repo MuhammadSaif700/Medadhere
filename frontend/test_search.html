@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quick Search Test</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        button { padding: 10px 20px; margin: 10px; }
+        pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Quick Pill Search Test</h1>
+    
+    <input type="text" id="searchTerm" value="Panadol" style="padding: 10px; width: 300px;">
+    <button onclick="searchPills()">Search</button>
+    
+    <div id="results"></div>
+
+    <script>
+        async function searchPills() {
+            const term = document.getElementById('searchTerm').value;
+            const resultsDiv = document.getElementById('results');
+            
+            resultsDiv.innerHTML = '<p>Searching...</p>';
+            
+            try {
+                const url = `http://localhost:8010/api/v1/pills/search?name=${encodeURIComponent(term)}`;
+                console.log('Fetching:', url);
+                
+                const response = await fetch(url);
+                console.log('Status:', response.status);
+                console.log('Headers:', response.headers);
+                
+                const data = await response.json();
+                console.log('Data:', data);
+                
+                resultsDiv.innerHTML = `
+                    <h2>Results: ${data.length} pills found</h2>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                console.error('Error:', error);
+                resultsDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+        
+        // Auto-search on load
+        window.onload = () => searchPills();
+    </script>
+</body>
+</html>

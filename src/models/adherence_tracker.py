@@ -23,7 +23,7 @@ class AdherenceTracker:
     def __init__(self, logs_path: str = "data/dose_logs.json"):
         self.logs_path = logs_path
         self.dose_logs = {}
-        self.caregiver_contacts = {}
+        # self.caregiver_contacts = {}
         
         self._load_dose_logs()
         self._load_caregiver_contacts()
@@ -48,20 +48,13 @@ class AdherenceTracker:
             contacts_file = Path("data/caregiver_contacts.json")
             if contacts_file.exists():
                 with open(contacts_file, 'r') as f:
-                    try:
-                        self.caregiver_contacts = json.load(f)
-                    except Exception:
-                        self.caregiver_contacts = {}
+                    self.caregiver_contacts = json.load(f)
             else:
-                # Create an empty caregiver contacts file (no sample/demo data)
-                self.caregiver_contacts = {}
-                contacts_file.parent.mkdir(parents=True, exist_ok=True)
-                with open(contacts_file, 'w') as f:
-                    json.dump(self.caregiver_contacts, f, indent=2)
-
+                self._create_sample_contacts()
+                
         except Exception as e:
             logger.error(f"Error loading caregiver contacts: {e}")
-            self.caregiver_contacts = {}
+            self._create_sample_contacts()
     
     def _create_sample_contacts(self):
         """Create sample caregiver contacts"""
@@ -87,6 +80,9 @@ class AdherenceTracker:
     ) -> AdherenceReport:
         """Generate comprehensive adherence report"""
         try:
+            # Reload dose logs to get the latest data from file
+            self._load_dose_logs()
+            
             # Get patient's dose logs
             patient_logs = self.dose_logs.get(patient_id, [])
             
@@ -132,6 +128,9 @@ class AdherenceTracker:
     def get_current_stats(self, patient_id: str) -> AdherenceStats:
         """Get current adherence statistics"""
         try:
+            # Reload dose logs to get the latest data from file
+            self._load_dose_logs()
+            
             today = datetime.now().date()
             week_start = today - timedelta(days=7)
             
@@ -154,7 +153,19 @@ class AdherenceTracker:
         """Calculate adherence statistics for date range"""
         try:
             patient_logs = self.dose_logs.get(patient_id, [])
-            
+
+            # If there are no logs for this patient, return neutral/empty stats
+            if not patient_logs:
+                return AdherenceStats(
+                    patient_id=patient_id,
+                    overall_adherence_rate=0.0,
+                    doses_taken_today=0,
+                    doses_scheduled_today=0,
+                    current_streak=0,
+                    longest_streak=0,
+                    last_dose_time=None
+                )
+
             # Count doses taken in period
             doses_taken = 0
             for log in patient_logs:
@@ -211,13 +222,70 @@ class AdherenceTracker:
             return 0
         
         # Simplified streak calculation
-        # In production, this would be more sophisticated
-        return 5  # Mock value
+        # Calculate based on consecutive days with doses
+        try:
+            # Sort logs by timestamp
+            sorted_logs = sorted(patient_logs, key=lambda x: x["timestamp"], reverse=True)
+            
+            # Count consecutive days from today
+            streak = 0
+            current_date = datetime.now().date()
+            
+            for log in sorted_logs:
+                log_date = datetime.fromisoformat(log["timestamp"]).date()
+                if log_date == current_date and log["status"] == "taken":
+                    streak = max(streak, 1)
+                    current_date -= timedelta(days=1)
+                elif log_date == current_date - timedelta(days=1) and log["status"] == "taken":
+                    streak += 1
+                    current_date = log_date - timedelta(days=1)
+            
+            return streak
+        except Exception as e:
+            logger.error(f"Error calculating streak: {e}")
+            return 0
     
     def _calculate_longest_streak(self, patient_id: str) -> int:
         """Calculate longest adherence streak"""
-        # Simplified - would analyze historical data
-        return 12  # Mock value
+        patient_logs = self.dose_logs.get(patient_id, [])
+        if not patient_logs:
+            return 0
+        
+        try:
+            # Sort logs by timestamp
+            sorted_logs = sorted(patient_logs, key=lambda x: x["timestamp"])
+            
+            # Find longest consecutive streak
+            longest = 0
+            current = 0
+            last_date = None
+            
+            for log in sorted_logs:
+                if log["status"] != "taken":
+                    continue
+                    
+                log_date = datetime.fromisoformat(log["timestamp"]).date()
+                
+                if last_date is None:
+                    current = 1
+                elif log_date == last_date:
+                    # Same day, don't increment
+                    continue
+                elif log_date == last_date + timedelta(days=1):
+                    # Consecutive day
+                    current += 1
+                else:
+                    # Gap in streak
+                    longest = max(longest, current)
+                    current = 1
+                
+                last_date = log_date
+            
+            longest = max(longest, current)
+            return longest
+        except Exception as e:
+            logger.error(f"Error calculating longest streak: {e}")
+            return 0
     
     def get_missed_doses(
         self, 
@@ -227,20 +295,23 @@ class AdherenceTracker:
     ) -> List[MissedDose]:
         """Get list of missed doses"""
         try:
-            # Simplified implementation
-            # Would compare scheduled doses vs taken doses
-            missed_doses = []
-            
-            # Mock missed dose for demonstration
-            if patient_id == "patient_001":
-                missed_doses.append(MissedDose(
-                    patient_id=patient_id,
-                    medication_name="Aspirin",
-                    scheduled_time=datetime.now() - timedelta(days=1, hours=8),
-                    missed_time=datetime.now() - timedelta(days=1, hours=8, minutes=30),
-                    severity="medium"
-                ))
-            
+            # Compare scheduled doses vs taken doses if schedules exist.
+            # For now, derive missed doses from dose_logs only: if there is a 'missed' status entry, include it.
+            missed_doses: List[MissedDose] = []
+
+            patient_logs = self.dose_logs.get(patient_id, [])
+            for log in patient_logs:
+                # Expect log entries to have a status field; 'missed' indicates a missed dose
+                if log.get('status') == 'missed':
+                    missed_doses.append(MissedDose(
+                        patient_id=patient_id,
+                        medication_name=log.get('medication_name', 'Unknown'),
+                        scheduled_time=datetime.fromisoformat(log.get('scheduled_time')) if log.get('scheduled_time') else datetime.fromisoformat(log.get('timestamp')),
+                        missed_time=datetime.fromisoformat(log.get('timestamp')),
+                        severity=log.get('severity', 'medium')
+                    ))
+
+            # If there are no explicit 'missed' logs, return an empty list (no demo data inserted)
             return missed_doses
             
         except Exception as e:
@@ -305,19 +376,22 @@ class AdherenceTracker:
     ) -> List[str]:
         """Generate adherence improvement recommendations"""
         recommendations = []
-        
+        # If there is no meaningful data (no logs and no missed doses), return an empty list
+        if (stats.overall_adherence_rate == 0 and stats.doses_taken_today == 0 and len(missed_doses) == 0):
+            return []
+
         if stats.overall_adherence_rate < 80:
             recommendations.append("Consider setting medication reminders or alarms")
-            
+
         if len(missed_doses) > 2:
             recommendations.append("Review medication schedule with healthcare provider")
-            
+
         if stats.current_streak < 3:
             recommendations.append("Focus on building consistent daily routine")
-            
+
         if not recommendations:
             recommendations.append("Great job maintaining medication adherence!")
-        
+
         return recommendations
     
     def send_caregiver_alert(self, alert: CaregiverAlert) -> Dict[str, Any]:
@@ -418,3 +492,25 @@ class AdherenceTracker:
         except Exception as e:
             logger.error(f"Error analyzing trends: {e}")
             raise
+    
+    def get_recent_doses(self, patient_id: str, limit: int = 10) -> List[Dict[str, Any]]:
+        """Get recent dose logs for a patient"""
+        try:
+            # Reload dose logs to get latest data
+            self._load_dose_logs()
+            
+            patient_logs = self.dose_logs.get(patient_id, [])
+            
+            # Sort by timestamp (most recent first)
+            sorted_logs = sorted(
+                patient_logs,
+                key=lambda x: x.get("timestamp", ""),
+                reverse=True
+            )
+            
+            # Return the most recent doses up to the limit
+            return sorted_logs[:limit]
+            
+        except Exception as e:
+            logger.error(f"Error getting recent doses: {e}")
+            return []

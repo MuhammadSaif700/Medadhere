@@ -1,1 +1,108 @@
-{}
+{
+  "0": {
+    "name": "myteka",
+    "dosage": "50mg",
+    "generic_name": "myteka",
+    "shape": "unknown",
+    "color": "unknown",
+    "manufacturer": "Unknown",
+    "description": "take with food"
+  },
+  "1": {
+    "medication_id": "paracetamol_.955_kg/kg",
+    "name": "PARACETAMOL",
+    "dosage": ".955 kg/kg",
+    "type": "tablet"
+  },
+  "2": {
+    "medication_id": "paracetamol_.955_kg/kg",
+    "name": "PARACETAMOL",
+    "dosage": ".955 kg/kg",
+    "type": "tablet"
+  },
+  "3": {
+    "medication_id": "paracetamol_.955_kg/kg",
+    "name": "PARACETAMOL",
+    "dosage": ".955 kg/kg",
+    "type": "tablet"
+  },
+  "4": {
+    "medication_id": "paracetamol_.955_kg/kg",
+    "name": "PARACETAMOL",
+    "dosage": ".955 kg/kg",
+    "type": "tablet"
+  },
+  "5": {
+    "medication_id": "paracetamol_.955_kg/kg",
+    "name": "PARACETAMOL",
+    "dosage": ".955 kg/kg",
+    "type": "tablet"
+  },
+  "6": {
+    "medication_id": "paracetamol_.955_kg/kg",
+    "name": "PARACETAMOL",
+    "dosage": ".955 kg/kg",
+    "type": "tablet"
+  },
+  "7": {
+    "medication_id": "aspirin_325mg",
+    "name": "Aspirin",
+    "dosage": "325mg",
+    "type": "tablet"
+  },
+  "8": {
+    "medication_id": "paracetamol_.955_kg/kg",
+    "name": "PARACETAMOL",
+    "dosage": ".955 kg/kg",
+    "type": "tablet"
+  },
+  "9": {
+    "name": "Alka-Seltzer",
+    "generic_name": "Alka-Seltzer",
+    "dosage": "1000 mg/1",
+    "strength": "1000 mg/1",
+    "manufacturer": "Lil' Drug Store Products, Inc.",
+    "form": "Tablet"
+  },
+  "10": {
+    "name": "Alka-Seltzer",
+    "generic_name": "Alka-Seltzer",
+    "dosage": "1000 mg/1",
+    "strength": "1000 mg/1",
+    "manufacturer": "Lil' Drug Store Products, Inc.",
+    "form": "Tablet"
+  },
+  "11": {
+    "name": "Alka-Seltzer",
+    "generic_name": "Alka-Seltzer",
+    "dosage": "1000 mg/1",
+    "strength": "1000 mg/1",
+    "manufacturer": "Lil' Drug Store Products, Inc.",
+    "form": "Tablet"
+  },
+  "12": {
+    "name": "Alka-Seltzer",
+    "generic_name": "Alka-Seltzer",
+    "dosage": "1000 mg/1",
+    "strength": "1000 mg/1",
+    "manufacturer": "Lil' Drug Store Products, Inc.",
+    "form": "Tablet"
+  },
+  "13": {
+    "name": "Alka-Seltzer",
+    "generic_name": "Alka-Seltzer",
+    "dosage": "1000 mg/1",
+    "strength": "1000 mg/1",
+    "manufacturer": "Lil' Drug Store Products, Inc.",
+    "form": "Tablet"
+  },
+  "14": {
+    "name": "ibruofin",
+    "dosage": "325",
+    "generic_name": "ibruofin",
+    "shape": "unknown",
+    "color": "unknown",
+    "manufacturer": "Unknown",
+    "description": "Custom medication"
+  }
+}

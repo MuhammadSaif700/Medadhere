@@ -98,6 +98,41 @@ async def get_missed_doses(
         )
         
         return missed_doses
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving missed doses: {str(e)}"
+        )
+
+@router.get("/recent-doses/{patient_id}")
+async def get_recent_doses(
+    patient_id: str,
+    limit: int = Query(default=10, description="Number of recent doses to return")
+):
+    """
+    Get recent dose logs for a patient
+    
+    Args:
+        patient_id: Patient identifier
+        limit: Maximum number of doses to return
+        
+    Returns:
+        List of recent dose logs
+    """
+    try:
+        recent_doses = adherence_tracker.get_recent_doses(
+            patient_id=patient_id,
+            limit=limit
+        )
+        
+        return recent_doses
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving recent doses: {str(e)}"
+        )
         
     except Exception as e:
         raise HTTPException(

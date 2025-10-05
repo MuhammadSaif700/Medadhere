@@ -2,13 +2,71 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="description" content="MedAdhere - AI-Powered Medication Adherence System">
     <title>MedAdhere - AI-Powered Medication Adherence</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        /* Custom responsive improvements */
+        * {
+            -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+        }
+        
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        /* Ensure minimum touch target size on mobile */
+        @media (max-width: 768px) {
+            button {
+                min-height: 44px;
+                min-width: 44px;
+            }
+            
+            input, select, textarea {
+                font-size: 16px; /* Prevents zoom on iOS */
+            }
+        }
+        
+        /* Smooth scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        /* Loading animation */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .fa-spin {
+            animation: spin 1s linear infinite;
+        }
+    </style>
 </head>
 <body class="bg-gray-50">
     <div id="root"></div>
@@ -21,6 +79,8 @@
 
         // Navigation Component
         const Navigation = ({ currentView, setCurrentView }) => {
+            const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+            
             const navItems = [
                 { id: 'dashboard', label: 'Dashboard', icon: 'fas fa-tachometer-alt' },
                 { id: 'identify', label: 'Identify Pill', icon: 'fas fa-camera' },
@@ -29,31 +89,68 @@
                 { id: 'search', label: 'Pill Database', icon: 'fas fa-search' }
             ];
 
+            const handleNavClick = (viewId) => {
+                setCurrentView(viewId);
+                setMobileMenuOpen(false);
+            };
+
             return (
-                <nav className="bg-blue-600 text-white shadow-lg">
+                <nav className="bg-blue-600 text-white shadow-lg sticky top-0 z-50">
                     <div className="max-w-7xl mx-auto px-4">
                         <div className="flex justify-between items-center py-4">
+                            {/* Logo */}
                             <div className="flex items-center space-x-3">
                                 <i className="fas fa-pills text-2xl"></i>
-                                <h1 className="text-xl font-bold">MedAdhere</h1>
+                                <h1 className="text-xl font-bold hidden sm:block">MedAdhere</h1>
+                                <h1 className="text-xl font-bold sm:hidden">MA</h1>
                             </div>
-                            <div className="flex space-x-1">
+                            
+                            {/* Desktop Navigation */}
+                            <div className="hidden md:flex space-x-1">
                                 {navItems.map(item => (
                                     <button
                                         key={item.id}
-                                        onClick={() => setCurrentView(item.id)}
-                                        className={`px-4 py-2 rounded-lg transition-colors ${
+                                        onClick={() => handleNavClick(item.id)}
+                                        className={`px-3 lg:px-4 py-2 rounded-lg transition-colors flex items-center space-x-2 ${
                                             currentView === item.id 
                                                 ? 'bg-blue-700 text-white' 
                                                 : 'text-blue-100 hover:bg-blue-500'
                                         }`}
                                     >
-                                        <i className={`${item.icon} mr-2`}></i>
-                                        <span className="hidden md:inline">{item.label}</span>
+                                        <i className={item.icon}></i>
+                                        <span className="hidden lg:inline">{item.label}</span>
                                     </button>
                                 ))}
                             </div>
+                            
+                            {/* Mobile Menu Button */}
+                            <button
+                                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                                className="md:hidden text-white focus:outline-none"
+                            >
+                                <i className={`fas ${mobileMenuOpen ? 'fa-times' : 'fa-bars'} text-2xl`}></i>
+                            </button>
                         </div>
+                        
+                        {/* Mobile Navigation Menu */}
+                        {mobileMenuOpen && (
+                            <div className="md:hidden pb-4 space-y-2">
+                                {navItems.map(item => (
+                                    <button
+                                        key={item.id}
+                                        onClick={() => handleNavClick(item.id)}
+                                        className={`w-full px-4 py-3 rounded-lg transition-colors flex items-center space-x-3 ${
+                                            currentView === item.id 
+                                                ? 'bg-blue-700 text-white' 
+                                                : 'text-blue-100 hover:bg-blue-500'
+                                        }`}
+                                    >
+                                        <i className={item.icon}></i>
+                                        <span>{item.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </nav>
             );
@@ -70,16 +167,14 @@
             const [recentActivity, setRecentActivity] = useState([]);
             const [upcomingMeds, setUpcomingMeds] = useState([]);
             const [loading, setLoading] = useState(true);
-
-            useEffect(() => {
-                fetchAdherenceStats();
-                fetchRecentActivity();
-                fetchUpcomingMeds();
-            }, []);
+            const [refreshing, setRefreshing] = useState(false);
 
             const fetchAdherenceStats = async () => {
                 try {
-                    const response = await fetch(`${API_BASE_URL}/api/v1/adherence/stats/patient_001`);
+                    const timestamp = new Date().getTime();
+                    const response = await fetch(`${API_BASE_URL}/api/v1/adherence/stats/patient_001?_t=${timestamp}`, {
+                        cache: 'no-store'
+                    });
                     if (response.ok) {
                         const data = await response.json();
                         setStats({
@@ -98,36 +193,46 @@
                         scheduledToday: 0,
                         currentStreak: 0
                     });
-                } finally {
-                    setLoading(false);
                 }
             };
 
             const fetchRecentActivity = async () => {
                 try {
-                    const response = await fetch(`${API_BASE_URL}/api/v1/adherence/report/patient_001?days=7`);
+                    const timestamp = new Date().getTime();
+                    const response = await fetch(`${API_BASE_URL}/api/v1/adherence/report/patient_001?days=7&_t=${timestamp}`, {
+                        cache: 'no-store'
+                    });
                     if (response.ok) {
                         const data = await response.json();
-                        // The API returns 'missed_doses' and 'daily_adherence'; use missed_doses for recent activity
-                        const missed = data.missed_doses || [];
-                        const activity = missed.slice(0, 3).map(item => ({
-                            type: 'missed',
-                            medication: item.medication_name,
-                            time: (item.scheduled_time || '').toString(),
-                            status: 'missed'
-                        }));
+                        // Only show recent activity if there is real user data
+                        const missed = Array.isArray(data.missed_doses) ? data.missed_doses : [];
+                        const daily = Array.isArray(data.daily_adherence) ? data.daily_adherence : [];
 
-                        // If no missed doses, fall back to showing recent daily adherence entries
-                        if (activity.length === 0 && Array.isArray(data.daily_adherence)) {
-                            const daily = data.daily_adherence.slice(0, 3).map(d => ({
-                                type: d.adherence_rate >= 100 ? 'taken' : 'missed',
+                        // Determine if there is any real activity to show
+                        const hasMissed = missed.length > 0;
+                        const hasTakenDays = daily.some(d => (d.doses_taken || 0) > 0 || (d.adherence_rate || 0) > 0);
+
+                        if (hasMissed) {
+                            // Show up to 3 missed dose entries
+                            const activity = missed.slice(0, 3).map(item => ({
+                                type: 'missed',
+                                medication: item.medication_name,
+                                time: (item.scheduled_time || '').toString(),
+                                status: 'missed'
+                            }));
+                            setRecentActivity(activity);
+                        } else if (hasTakenDays) {
+                            // Show recent days where doses were taken
+                            const takenDays = daily.filter(d => (d.doses_taken || 0) > 0).slice(0, 3).map(d => ({
+                                type: 'taken',
                                 medication: 'Multiple',
                                 time: d.date,
-                                status: d.adherence_rate >= 100 ? 'taken' : 'missed'
+                                status: 'taken'
                             }));
-                            setRecentActivity(daily);
+                            setRecentActivity(takenDays);
                         } else {
-                            setRecentActivity(activity);
+                            // No real user activity — show empty state
+                            setRecentActivity([]);
                         }
                     }
                 } catch (error) {
@@ -138,7 +243,10 @@
 
             const fetchUpcomingMeds = async () => {
                 try {
-                    const response = await fetch(`${API_BASE_URL}/api/v1/medications/schedule/patient_001`);
+                    const timestamp = new Date().getTime();
+                    const response = await fetch(`${API_BASE_URL}/api/v1/medications/schedule/patient_001?_t=${timestamp}`, {
+                        cache: 'no-store'
+                    });
                     if (response.ok) {
                         const data = await response.json();
                         // The API returns an array of schedules. Map the first two entries.
@@ -175,6 +283,30 @@
                 return 'Tomorrow';
             };
 
+            // Refresh data function
+            const refreshData = async () => {
+                console.log('🔄 Refreshing dashboard data...');
+                setRefreshing(true);
+                try {
+                    await Promise.all([
+                        fetchAdherenceStats(),
+                        fetchRecentActivity(),
+                        fetchUpcomingMeds()
+                    ]);
+                    console.log('✅ Dashboard data refreshed successfully');
+                } catch (error) {
+                    console.error('❌ Error refreshing data:', error);
+                } finally {
+                    setRefreshing(false);
+                    setLoading(false);
+                }
+            };
+
+            // Load data on component mount
+            useEffect(() => {
+                refreshData();
+            }, []);
+
             if (loading) {
                 return (
                     <div className="flex justify-center items-center h-64">
@@ -184,59 +316,69 @@
             }
 
             return (
-                <div className="space-y-6">
-                    <div className="bg-white rounded-lg shadow-md p-6">
-                        <h2 className="text-2xl font-bold text-gray-800 mb-4">
-                            <i className="fas fa-tachometer-alt mr-2 text-blue-600"></i>
-                            Dashboard Overview
-                        </h2>
+                <div className="space-y-4 sm:space-y-6">
+                    <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
+                            <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
+                                <i className="fas fa-tachometer-alt mr-2 text-blue-600"></i>
+                                Dashboard Overview
+                            </h2>
+                            <button
+                                onClick={refreshData}
+                                disabled={refreshing}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 min-w-[120px] sm:min-w-[140px]"
+                            >
+                                <i className={`fas fa-sync-alt ${refreshing ? 'fa-spin' : ''}`}></i>
+                                <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
+                            </button>
+                        </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <div className="bg-green-50 p-4 rounded-lg border-l-4 border-green-500">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                            <div className="bg-green-50 p-3 sm:p-4 rounded-lg border-l-4 border-green-500">
                                 <div className="flex items-center">
                                     <div className="flex-shrink-0">
-                                        <i className="fas fa-percentage text-green-600 text-2xl"></i>
+                                        <i className="fas fa-percentage text-green-600 text-xl sm:text-2xl"></i>
                                     </div>
-                                    <div className="ml-4">
-                                        <p className="text-sm font-medium text-gray-600">Adherence Rate</p>
-                                        <p className="text-2xl font-bold text-green-600">{stats.adherenceRate}%</p>
+                                    <div className="ml-3 sm:ml-4">
+                                        <p className="text-xs sm:text-sm font-medium text-gray-600">Adherence Rate</p>
+                                        <p className="text-xl sm:text-2xl font-bold text-green-600">{stats.adherenceRate}%</p>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">
+                            <div className="bg-blue-50 p-3 sm:p-4 rounded-lg border-l-4 border-blue-500">
                                 <div className="flex items-center">
                                     <div className="flex-shrink-0">
-                                        <i className="fas fa-check-circle text-blue-600 text-2xl"></i>
+                                        <i className="fas fa-check-circle text-blue-600 text-xl sm:text-2xl"></i>
                                     </div>
-                                    <div className="ml-4">
-                                        <p className="text-sm font-medium text-gray-600">Today's Progress</p>
-                                        <p className="text-2xl font-bold text-blue-600">{stats.dosesToday}/{stats.scheduledToday}</p>
+                                    <div className="ml-3 sm:ml-4">
+                                        <p className="text-xs sm:text-sm font-medium text-gray-600">Today's Progress</p>
+                                        <p className="text-xl sm:text-2xl font-bold text-blue-600">{stats.dosesToday}/{stats.scheduledToday}</p>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="bg-purple-50 p-4 rounded-lg border-l-4 border-purple-500">
+                            <div className="bg-purple-50 p-3 sm:p-4 rounded-lg border-l-4 border-purple-500">
                                 <div className="flex items-center">
                                     <div className="flex-shrink-0">
-                                        <i className="fas fa-fire text-purple-600 text-2xl"></i>
+                                        <i className="fas fa-fire text-purple-600 text-xl sm:text-2xl"></i>
                                     </div>
-                                    <div className="ml-4">
-                                        <p className="text-sm font-medium text-gray-600">Current Streak</p>
-                                        <p className="text-2xl font-bold text-purple-600">{stats.currentStreak} days</p>
+                                    <div className="ml-3 sm:ml-4">
+                                        <p className="text-xs sm:text-sm font-medium text-gray-600">Current Streak</p>
+                                        <p className="text-xl sm:text-2xl font-bold text-purple-600">{stats.currentStreak} days</p>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="bg-orange-50 p-4 rounded-lg border-l-4 border-orange-500">
+                            <div className="bg-orange-50 p-3 sm:p-4 rounded-lg border-l-4 border-orange-500">
                                 <div className="flex items-center">
                                     <div className="flex-shrink-0">
-                                        <i className="fas fa-clock text-orange-600 text-2xl"></i>
+                                        <i className="fas fa-clock text-orange-600 text-xl sm:text-2xl"></i>
                                     </div>
-                                    <div className="ml-4">
-                                        <p className="text-sm font-medium text-gray-600">Next Dose</p>
-                                        <p className="text-lg font-bold text-orange-600">
-                                            {upcomingMeds.length > 0 ? upcomingMeds[0].time : 'None scheduled'}
+                                    <div className="ml-3 sm:ml-4">
+                                        <p className="text-xs sm:text-sm font-medium text-gray-600">Next Dose</p>
+                                        <p className="text-base sm:text-lg font-bold text-orange-600 truncate">
+                                            {upcomingMeds.length > 0 ? upcomingMeds[0].time : 'None'}
                                         </p>
                                     </div>
                                 </div>
@@ -244,9 +386,9 @@
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div className="bg-white rounded-lg shadow-md p-6">
-                            <h3 className="text-lg font-semibold text-gray-800 mb-4">Recent Activity</h3>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                        <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                            <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-4">Recent Activity</h3>
                             <div className="space-y-3">
                                 {recentActivity.length === 0 ? (
                                     <div className="text-center py-8 text-gray-500">
@@ -298,7 +440,7 @@
         };
 
         // Pill Identification Component
-        const PillIdentification = () => {
+        const PillIdentification = ({ setCurrentView }) => {
             const [selectedFile, setSelectedFile] = useState(null);
             const [preview, setPreview] = useState(null);
             const [loading, setLoading] = useState(false);
@@ -365,6 +507,50 @@
                 } finally {
                     setLoading(false);
                 }
+            };
+
+            const handleConfirmMedication = async () => {
+                if (!result || !result.pill_info) return;
+                
+                try {
+                    // Log the dose to the backend
+                    const response = await fetch(`${API_BASE_URL}/api/v1/pills/log-dose`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            medication_name: result.pill_info.name,
+                            dosage: result.pill_info.dosage || 'Unknown',
+                            patient_id: 'patient_001'
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        // Reset to upload new pill
+                        setSelectedFile(null);
+                        setPreview(null);
+                        setResult(null);
+                        
+                        // Show success message and navigate to dashboard
+                        alert(`✅ Dose logged successfully!\n\nMedication: ${result.pill_info.name}\nDosage: ${result.pill_info.dosage || 'Unknown'}\n\nNavigating to Dashboard...`);
+                        
+                        // Navigate to dashboard to see the logged dose
+                        setCurrentView('dashboard');
+                    } else {
+                        throw new Error('Failed to log dose');
+                    }
+                } catch (error) {
+                    console.error('Error logging dose:', error);
+                    alert('Error logging dose. Please try again.');
+                }
+            };
+
+            const handleRejectMedication = () => {
+                // Reset to try again
+                setResult(null);
+                alert('Please try uploading a clearer image or use the Pill Database search.');
             };
 
             return (
@@ -451,11 +637,17 @@
                                                 </div>
                                                 
                                                 <div className="mt-4 flex space-x-2">
-                                                    <button className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors">
+                                                    <button 
+                                                        onClick={handleConfirmMedication}
+                                                        className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                                                    >
                                                         <i className="fas fa-check mr-2"></i>
                                                         Confirm & Log Dose
                                                     </button>
-                                                    <button className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors">
+                                                    <button 
+                                                        onClick={handleRejectMedication}
+                                                        className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                                                    >
                                                         <i className="fas fa-times mr-2"></i>
                                                         Not My Medication
                                                     </button>
@@ -697,6 +889,107 @@
                                 ))}
                             </div>
                         )}
+                        {/* Add Medication Modal (belongs to MedicationSchedule) */}
+                        {showAddModal && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                                <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="text-lg font-semibold text-gray-800">Add New Medication</h3>
+                                        <button 
+                                            onClick={() => setShowAddModal(false)}
+                                            className="text-gray-500 hover:text-gray-700"
+                                        >
+                                            <i className="fas fa-times"></i>
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Medication Name *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={newMedication.name}
+                                                onChange={(e) => setNewMedication({...newMedication, name: e.target.value})}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                placeholder="e.g., Aspirin"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Dosage *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={newMedication.dosage}
+                                                onChange={(e) => setNewMedication({...newMedication, dosage: e.target.value})}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                placeholder="e.g., 325mg"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Frequency
+                                            </label>
+                                            <select
+                                                value={newMedication.frequency}
+                                                onChange={(e) => setNewMedication({...newMedication, frequency: e.target.value})}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            >
+                                                <option value="once daily">Once Daily</option>
+                                                <option value="twice daily">Twice Daily</option>
+                                                <option value="three times daily">Three Times Daily</option>
+                                                <option value="four times daily">Four Times Daily</option>
+                                                <option value="as needed">As Needed</option>
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Time
+                                            </label>
+                                            <input
+                                                type="time"
+                                                value={newMedication.time}
+                                                onChange={(e) => setNewMedication({...newMedication, time: e.target.value})}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Instructions
+                                            </label>
+                                            <textarea
+                                                value={newMedication.instructions}
+                                                onChange={(e) => setNewMedication({...newMedication, instructions: e.target.value})}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                placeholder="e.g., Take with food"
+                                                rows="2"
+                                            ></textarea>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex justify-end space-x-3 mt-6">
+                                        <button
+                                            onClick={() => setShowAddModal(false)}
+                                            className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button
+                                            onClick={handleSaveMedication}
+                                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                        >
+                                            Add Medication
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             );
@@ -886,6 +1179,15 @@
             const [searchResults, setSearchResults] = useState([]);
             const [loading, setLoading] = useState(false);
             const [allPills, setAllPills] = useState([]);
+            const [selectedPill, setSelectedPill] = useState(null);
+            const [loadingDetails, setLoadingDetails] = useState(false);
+            const [showScheduleModal, setShowScheduleModal] = useState(false);
+            const [scheduleForm, setScheduleForm] = useState({
+                frequency: 'once daily',
+                times: ['08:00'],
+                instructions: ''
+            });
+            const [addingToSchedule, setAddingToSchedule] = useState(false);
 
             useEffect(() => {
                 fetchAllPills();
@@ -899,24 +1201,23 @@
                         setAllPills(data);
                         setSearchResults(data);
                     } else {
-                        // No pills found or API error - show empty state
                         setAllPills([]);
                         setSearchResults([]);
                     }
                 } catch (error) {
                     console.error('Error fetching pills:', error);
-                    // Show empty state on error
                     setAllPills([]);
                     setSearchResults([]);
                 }
             };
 
             const handleSearch = async () => {
+                setLoading(true);
+                setSelectedPill(null);
                 try {
                     let url = `${API_BASE_URL}/api/v1/pills/search`;
                     
                     if (searchQuery.trim()) {
-                        // Add search query parameter - searching by name primarily
                         url += `?name=${encodeURIComponent(searchQuery.trim())}`;
                     }
                     
@@ -930,12 +1231,155 @@
                 } catch (error) {
                     console.error('Error searching pills:', error);
                     setSearchResults([]);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const handlePillClick = async (pill) => {
+                setSelectedPill(pill);
+                setLoadingDetails(true);
+                
+                // For now, just use the pill data we have
+                // The details endpoint doesn't exist yet, so we'll skip the additional fetch
+                try {
+                    // You could add more API calls here to get additional details
+                    // For now, we'll just use what we have
+                    setSelectedPill(pill);
+                } catch (error) {
+                    console.error('Error fetching pill details:', error);
+                } finally {
+                    setLoadingDetails(false);
                 }
             };
 
             const handleKeyPress = (event) => {
                 if (event.key === 'Enter') {
                     handleSearch();
+                }
+            };
+
+            const handleBackToSearch = () => {
+                setSelectedPill(null);
+                setShowScheduleModal(false);
+            };
+
+            const handleAddToSchedule = () => {
+                setShowScheduleModal(true);
+            };
+
+            const handleScheduleFormChange = (field, value) => {
+                setScheduleForm(prev => ({
+                    ...prev,
+                    [field]: value
+                }));
+            };
+
+            const handleAddTime = () => {
+                setScheduleForm(prev => ({
+                    ...prev,
+                    times: [...prev.times, '08:00']
+                }));
+            };
+
+            const handleRemoveTime = (index) => {
+                setScheduleForm(prev => ({
+                    ...prev,
+                    times: prev.times.filter((_, i) => i !== index)
+                }));
+            };
+
+            const handleTimeChange = (index, value) => {
+                setScheduleForm(prev => {
+                    const newTimes = [...prev.times];
+                    newTimes[index] = value;
+                    return {
+                        ...prev,
+                        times: newTimes
+                    };
+                });
+            };
+
+            const handleSubmitSchedule = async () => {
+                setAddingToSchedule(true);
+                
+                try {
+                    // First, register the medication
+                    const medResponse = await fetch(`${API_BASE_URL}/api/v1/medications/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            name: selectedPill.name,
+                            generic_name: selectedPill.generic_name || selectedPill.name,
+                            dosage: selectedPill.dosage || 'Unknown',
+                            strength: selectedPill.dosage || 'Unknown',
+                            manufacturer: selectedPill.manufacturer || 'Unknown',
+                            form: selectedPill.description || 'Tablet'
+                        })
+                    });
+                    
+                    if (!medResponse.ok) {
+                        const errorData = await medResponse.text();
+                        console.error('Medication registration error:', errorData);
+                        throw new Error('Failed to register medication');
+                    }
+                    
+                    const medData = await medResponse.json();
+                    console.log('Medication created:', medData);
+                    
+                    // The backend returns {id: "...", name: "...", ...}
+                    const medicationId = medData.id;
+                    
+                    if (!medicationId) {
+                        console.error('No medication ID in response:', medData);
+                        throw new Error('Medication ID not returned from server');
+                    }
+                    
+                    // Now add to schedule
+                    const schedulePayload = {
+                        medication_id: medicationId,
+                        patient_id: 'patient_001',
+                        frequency: scheduleForm.frequency,
+                        times: scheduleForm.times,
+                        instructions: scheduleForm.instructions,
+                        start_date: new Date().toISOString()
+                    };
+                    
+                    console.log('Sending schedule payload:', schedulePayload);
+                    
+                    const scheduleResponse = await fetch(`${API_BASE_URL}/api/v1/medications/schedule`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(schedulePayload)
+                    });
+                    
+                    if (!scheduleResponse.ok) {
+                        const errorData = await scheduleResponse.text();
+                        console.error('Schedule addition error:', errorData);
+                        throw new Error('Failed to add to schedule');
+                    }
+                    
+                    const scheduleData = await scheduleResponse.json();
+                    console.log('Schedule created:', scheduleData);
+                    
+                    // Success!
+                    alert(`✅ Success!\n\n"${selectedPill.name}" has been added to your medication schedule.\n\nYou can view it in the "My Schedule" section.`);
+                    setShowScheduleModal(false);
+                    setScheduleForm({
+                        frequency: 'once daily',
+                        times: ['08:00'],
+                        instructions: ''
+                    });
+                    
+                } catch (error) {
+                    console.error('Error adding to schedule:', error);
+                    alert(`❌ Error adding medication to schedule.\n\nDetails: ${error.message}\n\nPlease try again or contact support.`);
+                } finally {
+                    setAddingToSchedule(false);
                 }
             };
 
@@ -950,7 +1394,7 @@
                         <div className="flex space-x-2 mb-6">
                             <input
                                 type="text"
-                                placeholder="Search by name, color, shape, or imprint..."
+                                placeholder="Search by medication name (e.g., Panadol, Aspirin)..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 onKeyPress={handleKeyPress}
@@ -958,49 +1402,340 @@
                             />
                             <button
                                 onClick={handleSearch}
-                                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                disabled={loading}
+                                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400"
                             >
-                                <i className="fas fa-search mr-2"></i>
+                                <i className={`fas ${loading ? 'fa-spinner fa-spin' : 'fa-search'} mr-2`}></i>
                                 Search
                             </button>
                         </div>
 
-                        <div className="grid gap-4">
-                            {searchResults.length === 0 ? (
-                                <div className="text-center py-8 text-gray-500">
-                                    <i className="fas fa-search text-4xl mb-4"></i>
-                                    <p>No pills found matching your search</p>
-                                </div>
-                            ) : (
-                                searchResults.map((pill, index) => (
-                                    <div key={index} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                            <div>
-                                                <h3 className="font-semibold text-gray-800 text-lg">{pill.name}</h3>
-                                                <p className="text-gray-600">{pill.dosage}</p>
-                                            </div>
-                                            <div>
-                                                <span className="text-sm font-medium text-gray-600">Shape & Color:</span>
-                                                <p className="text-gray-800">{pill.shape}, {pill.color}</p>
-                                            </div>
-                                            <div>
-                                                <span className="text-sm font-medium text-gray-600">Imprint:</span>
-                                                <p className="text-gray-800">{pill.imprint || 'None'}</p>
-                                            </div>
-                                            <div>
-                                                <span className="text-sm font-medium text-gray-600">Manufacturer:</span>
-                                                <p className="text-gray-800">{pill.manufacturer || 'Unknown'}</p>
-                                            </div>
+                        {selectedPill ? (
+                            // Detailed View
+                            <div>
+                                <button
+                                    onClick={handleBackToSearch}
+                                    className="mb-4 text-blue-600 hover:text-blue-800 flex items-center"
+                                >
+                                    <i className="fas fa-arrow-left mr-2"></i>
+                                    Back to Search Results
+                                </button>
+
+                                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
+                                    <div className="flex items-start justify-between mb-6">
+                                        <div>
+                                            <h3 className="text-3xl font-bold text-gray-900 mb-2">{selectedPill.name}</h3>
+                                            {selectedPill.generic_name && selectedPill.generic_name !== selectedPill.name && (
+                                                <p className="text-lg text-gray-600">Generic: {selectedPill.generic_name}</p>
+                                            )}
+                                        </div>
+                                        <div className="bg-blue-600 text-white px-4 py-2 rounded-lg">
+                                            <i className="fas fa-pills mr-2"></i>
+                                            {selectedPill.dosage || 'N/A'}
                                         </div>
                                     </div>
-                                ))
-                            )}
-                        </div>
+
+                                    {loadingDetails ? (
+                                        <div className="text-center py-8">
+                                            <i className="fas fa-spinner fa-spin text-3xl text-blue-600"></i>
+                                            <p className="mt-2 text-gray-600">Loading detailed information...</p>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            {/* Physical Characteristics */}
+                                            <div className="bg-white rounded-lg p-4 shadow">
+                                                <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
+                                                    <i className="fas fa-eye mr-2 text-blue-600"></i>
+                                                    Physical Characteristics
+                                                </h4>
+                                                <div className="space-y-2">
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-600">Shape:</span>
+                                                        <span className="font-medium text-gray-800">{selectedPill.shape || 'Not specified'}</span>
+                                                    </div>
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-600">Color:</span>
+                                                        <span className="font-medium text-gray-800">{selectedPill.color || 'Not specified'}</span>
+                                                    </div>
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-600">Imprint:</span>
+                                                        <span className="font-medium text-gray-800">{selectedPill.imprint || 'None'}</span>
+                                                    </div>
+                                                    {selectedPill.ndc_number && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-gray-600">NDC:</span>
+                                                            <span className="font-mono text-sm text-gray-800">{selectedPill.ndc_number}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Manufacturer Info */}
+                                            <div className="bg-white rounded-lg p-4 shadow">
+                                                <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
+                                                    <i className="fas fa-industry mr-2 text-blue-600"></i>
+                                                    Manufacturer Information
+                                                </h4>
+                                                <div className="space-y-2">
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-600">Manufacturer:</span>
+                                                        <span className="font-medium text-gray-800">{selectedPill.manufacturer || 'Unknown'}</span>
+                                                    </div>
+                                                    {selectedPill.source && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-gray-600">Data Source:</span>
+                                                            <span className="font-medium text-gray-800 uppercase text-sm">{selectedPill.source}</span>
+                                                        </div>
+                                                    )}
+                                                    {selectedPill.description && (
+                                                        <div className="mt-2">
+                                                            <span className="text-gray-600 block mb-1">Form:</span>
+                                                            <span className="text-gray-800">{selectedPill.description}</span>
+                                                        </div>
+                                                    )}
+                                                    {selectedPill.rxcui && (
+                                                        <div className="flex justify-between">
+                                                            <span className="text-gray-600">RxCUI:</span>
+                                                            <span className="font-mono text-sm text-gray-800">{selectedPill.rxcui}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Additional Information */}
+                                            <div className="bg-white rounded-lg p-4 shadow md:col-span-2">
+                                                <h4 className="font-semibold text-gray-800 mb-3 flex items-center">
+                                                    <i className="fas fa-info-circle mr-2 text-blue-600"></i>
+                                                    Additional Information
+                                                </h4>
+                                                <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded">
+                                                    <p className="text-sm text-gray-700">
+                                                        <i className="fas fa-exclamation-triangle mr-2 text-yellow-600"></i>
+                                                        <strong>Important:</strong> This information is for reference only. Always consult your healthcare provider or pharmacist 
+                                                        for medical advice, proper dosage, and potential drug interactions.
+                                                    </p>
+                                                </div>
+                                                
+                                                {selectedPill.active_ingredients && (
+                                                    <div className="mt-4">
+                                                        <span className="text-gray-600 font-medium">Active Ingredients:</span>
+                                                        <p className="text-gray-800 mt-1">{selectedPill.active_ingredients}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Action Buttons */}
+                                    <div className="mt-6 flex space-x-4">
+                                        <button
+                                            onClick={() => window.open(`https://www.drugs.com/search.php?searchterm=${encodeURIComponent(selectedPill.name)}`, '_blank')}
+                                            className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                                        >
+                                            <i className="fas fa-external-link-alt mr-2"></i>
+                                            More Info on Drugs.com
+                                        </button>
+                                        <button
+                                            onClick={handleAddToSchedule}
+                                            className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                                        >
+                                            <i className="fas fa-plus-circle mr-2"></i>
+                                            Add to My Medications
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            // List View
+                            <div className="grid gap-4">
+                                {loading ? (
+                                    <div className="text-center py-8">
+                                        <i className="fas fa-spinner fa-spin text-4xl text-blue-600 mb-4"></i>
+                                        <p className="text-gray-600 text-lg">Searching database...</p>
+                                    </div>
+                                ) : searchResults.length === 0 ? (
+                                    <div className="text-center py-8 text-gray-500">
+                                        <i className="fas fa-search text-4xl mb-4"></i>
+                                        <p className="text-lg mb-2">No medications found</p>
+                                        <p className="text-sm">Try searching for a medication name like "Aspirin" or "Panadol"</p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded mb-2">
+                                            <p className="text-sm text-gray-700">
+                                                <i className="fas fa-hand-pointer mr-2 text-blue-600"></i>
+                                                <strong>Click on any medication</strong> to view detailed information
+                                            </p>
+                                        </div>
+                                        {searchResults.map((pill, index) => (
+                                            <div 
+                                                key={index} 
+                                                onClick={() => handlePillClick(pill)}
+                                                className="border rounded-lg p-4 hover:shadow-lg hover:border-blue-400 transition-all cursor-pointer bg-white"
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center">
+                                                            <i className="fas fa-pills text-blue-600 mr-3 text-xl"></i>
+                                                            <div>
+                                                                <h3 className="font-bold text-gray-900 text-lg">{pill.name}</h3>
+                                                                {pill.generic_name && pill.generic_name !== pill.name && (
+                                                                    <p className="text-sm text-gray-600">Generic: {pill.generic_name}</p>
+                                                                )}
+                                                                {pill.dosage && (
+                                                                    <p className="text-sm text-gray-600 mt-1">
+                                                                        <i className="fas fa-prescription-bottle mr-1"></i>
+                                                                        {pill.dosage}
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        {pill.manufacturer && pill.manufacturer !== 'Various' && (
+                                                            <p className="text-sm text-gray-500 mt-2 ml-10">
+                                                                <i className="fas fa-industry mr-1"></i>
+                                                                {pill.manufacturer}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                    <div className="text-blue-600">
+                                                        <i className="fas fa-chevron-right text-xl"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </>
+                                )}
+                            </div>
+                        )}
                         
-                        <div className="mt-4 text-sm text-gray-500 text-center">
-                            Found {searchResults.length} result{searchResults.length !== 1 ? 's' : ''}
-                        </div>
+                        {!loading && !selectedPill && searchResults.length > 0 && (
+                            <div className="mt-4 text-sm text-gray-500 text-center bg-gray-50 py-2 rounded">
+                                Found <strong>{searchResults.length}</strong> result{searchResults.length !== 1 ? 's' : ''}
+                            </div>
+                        )}
                     </div>
+
+                    {/* Schedule Modal */}
+                    {showScheduleModal && selectedPill && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowScheduleModal(false)}>
+                            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                                <div className="bg-blue-600 text-white p-6 rounded-t-lg">
+                                    <h3 className="text-2xl font-bold flex items-center">
+                                        <i className="fas fa-calendar-plus mr-3"></i>
+                                        Add to Medication Schedule
+                                    </h3>
+                                    <p className="mt-2 opacity-90">Configure when and how often you take this medication</p>
+                                </div>
+
+                                <div className="p-6 space-y-6">
+                                    {/* Medication Info */}
+                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                        <h4 className="font-bold text-gray-800 text-lg">{selectedPill.name}</h4>
+                                        <p className="text-gray-600">{selectedPill.dosage}</p>
+                                    </div>
+
+                                    {/* Frequency */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            <i className="fas fa-repeat mr-2 text-blue-600"></i>
+                                            How often do you take this medication?
+                                        </label>
+                                        <select
+                                            value={scheduleForm.frequency}
+                                            onChange={(e) => handleScheduleFormChange('frequency', e.target.value)}
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        >
+                                            <option value="once daily">Once daily</option>
+                                            <option value="twice daily">Twice daily</option>
+                                            <option value="three times daily">Three times daily</option>
+                                            <option value="four times daily">Four times daily</option>
+                                            <option value="every other day">Every other day</option>
+                                            <option value="weekly">Weekly</option>
+                                            <option value="as needed">As needed</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Times */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            <i className="fas fa-clock mr-2 text-blue-600"></i>
+                                            What time(s) do you take it?
+                                        </label>
+                                        <div className="space-y-2">
+                                            {scheduleForm.times.map((time, index) => (
+                                                <div key={index} className="flex items-center space-x-2">
+                                                    <input
+                                                        type="time"
+                                                        value={time}
+                                                        onChange={(e) => handleTimeChange(index, e.target.value)}
+                                                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                    />
+                                                    {scheduleForm.times.length > 1 && (
+                                                        <button
+                                                            onClick={() => handleRemoveTime(index)}
+                                                            className="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                                                        >
+                                                            <i className="fas fa-trash"></i>
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ))}
+                                            <button
+                                                onClick={handleAddTime}
+                                                className="w-full px-4 py-2 border-2 border-dashed border-blue-300 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                                            >
+                                                <i className="fas fa-plus mr-2"></i>
+                                                Add Another Time
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Instructions */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            <i className="fas fa-notes-medical mr-2 text-blue-600"></i>
+                                            Special Instructions (optional)
+                                        </label>
+                                        <textarea
+                                            value={scheduleForm.instructions}
+                                            onChange={(e) => handleScheduleFormChange('instructions', e.target.value)}
+                                            placeholder="e.g., Take with food, Avoid alcohol, etc."
+                                            rows="3"
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        ></textarea>
+                                    </div>
+                                </div>
+
+                                {/* Modal Footer */}
+                                <div className="bg-gray-50 px-6 py-4 rounded-b-lg flex space-x-3">
+                                    <button
+                                        onClick={() => setShowScheduleModal(false)}
+                                        disabled={addingToSchedule}
+                                        className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors disabled:opacity-50"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleSubmitSchedule}
+                                        disabled={addingToSchedule}
+                                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                                    >
+                                        {addingToSchedule ? (
+                                            <>
+                                                <i className="fas fa-spinner fa-spin mr-2"></i>
+                                                Adding...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <i className="fas fa-check mr-2"></i>
+                                                Add to Schedule
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         };
@@ -1014,7 +1749,7 @@
                     case 'dashboard':
                         return <Dashboard />;
                     case 'identify':
-                        return <PillIdentification />;
+                        return <PillIdentification setCurrentView={setCurrentView} />;
                     case 'schedule':
                         return <MedicationSchedule />;
                     case 'reports':
@@ -1027,22 +1762,22 @@
             };
 
             return (
-                <div className="min-h-screen bg-gray-50">
+                <div className="min-h-screen bg-gray-50 flex flex-col">
                     <Navigation currentView={currentView} setCurrentView={setCurrentView} />
-                    <main className="max-w-7xl mx-auto px-4 py-8">
+                    <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 w-full">
                         {renderCurrentView()}
                     </main>
                     
                     {/* Footer */}
-                    <footer className="bg-white border-t border-gray-200 mt-12">
-                        <div className="max-w-7xl mx-auto px-4 py-6">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-2">
+                    <footer className="bg-white border-t border-gray-200 mt-auto">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+                            <div className="flex flex-col sm:flex-row items-center justify-between space-y-2 sm:space-y-0">
+                                <div className="flex items-center space-x-2 text-center sm:text-left">
                                     <i className="fas fa-pills text-blue-600"></i>
                                     <span className="font-medium text-gray-800">MedAdhere</span>
-                                    <span className="text-gray-500">- AI-Powered Medication Adherence</span>
+                                    <span className="hidden sm:inline text-gray-500">- AI-Powered Medication Adherence</span>
                                 </div>
-                                <div className="text-sm text-gray-500">
+                                <div className="text-xs sm:text-sm text-gray-500">
                                     © 2025 MedAdhere. All rights reserved.
                                 </div>
                             </div>

@@ -1,0 +1,72 @@
+{
+  "default_user": [
+    {
+      "medication_id": "paracetamol_.955_kg/kg",
+      "timestamp": "2025-10-04T19:13:07.886597",
+      "confidence": 0.9,
+      "status": "taken"
+    },
+    {
+      "medication_id": "paracetamol_.955_kg/kg",
+      "timestamp": "2025-10-04T19:14:03.854066",
+      "confidence": 0.9,
+      "status": "taken"
+    }
+  ],
+  "patient_001": [
+    {
+      "medication_id": "paracetamol_.955_kg/kg",
+      "timestamp": "2025-10-04T19:23:19.236555",
+      "confidence": 0.9,
+      "status": "taken"
+    },
+    {
+      "medication_id": "paracetamol_.955_kg/kg",
+      "timestamp": "2025-10-04T19:23:55.499330",
+      "confidence": 0.9,
+      "status": "taken"
+    },
+    {
+      "medication_id": "paracetamol_.955_kg/kg",
+      "timestamp": "2025-10-04T19:27:11.571692",
+      "confidence": 0.9,
+      "status": "taken"
+    },
+    {
+      "medication_id": "paracetamol_.955_kg/kg",
+      "timestamp": "2025-10-04T23:04:18.649573",
+      "confidence": 0.9,
+      "status": "taken"
+    },
+    {
+      "medication_id": "aspirin_325mg",
+      "timestamp": "2025-10-04T23:54:26.454393",
+      "confidence": 0.9,
+      "status": "taken"
+    },
+    {
+      "medication_id": "paracetamol_.955_kg/kg",
+      "timestamp": "2025-10-04T23:58:49.182580",
+      "confidence": 0.9,
+      "status": "taken"
+    },
+    {
+      "medication_id": "paracetamol_.955_kg/kg",
+      "timestamp": "2025-10-05T14:32:17.700826",
+      "confidence": 0.9,
+      "status": "taken"
+    },
+    {
+      "medication_id": "acetaminophen_extra_strength_500_mg/1",
+      "timestamp": "2025-10-06T00:59:26.872351",
+      "confidence": 0.9,
+      "status": "taken"
+    },
+    {
+      "medication_id": "acetaminophen_extra_strength_500_mg/1",
+      "timestamp": "2025-10-06T00:59:51.133645",
+      "confidence": 0.9,
+      "status": "taken"
+    }
+  ]
+}

@@ -35,28 +35,15 @@ class MedicationVerifier:
             schedules_file = Path(self.schedules_path)
             if schedules_file.exists():
                 with open(schedules_file, 'r') as f:
-                    try:
-                        data = json.load(f)
-                    except Exception:
-                        data = {}
+                    data = json.load(f)
                     self.patient_schedules = data
                 logger.info(f"Loaded schedules for {len(self.patient_schedules)} patients")
             else:
-                # Create an empty schedules file (no sample/demo data)
-                self.patient_schedules = {}
-                schedules_file.parent.mkdir(parents=True, exist_ok=True)
-                with open(self.schedules_path, 'w') as f:
-                    json.dump(self.patient_schedules, f, indent=2)
-                logger.info("Created empty schedules file (no sample data)")
-
+                self._create_sample_schedules()
+                
         except Exception as e:
             logger.error(f"Error loading schedules: {e}")
-            # On error, start empty and persist an empty file
-            self.patient_schedules = {}
-            schedules_file = Path(self.schedules_path)
-            schedules_file.parent.mkdir(parents=True, exist_ok=True)
-            with open(self.schedules_path, 'w') as f:
-                json.dump(self.patient_schedules, f, indent=2)
+            self._create_sample_schedules()
     
     def _create_sample_schedules(self):
         """Create sample medication schedules for demonstration"""

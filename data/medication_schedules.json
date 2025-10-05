@@ -1,1 +1,28 @@
-{}
+{
+  "patient_001": [
+    {
+      "medication_name": "Alka-Seltzer",
+      "dosage": "1000 mg/1",
+      "frequency": "once daily",
+      "times": [
+        "08:00"
+      ],
+      "start_date": "2025-10-05T19:27:55.047000+00:00",
+      "end_date": null,
+      "instructions": "",
+      "prescriber": null
+    },
+    {
+      "medication_name": "ibruofin",
+      "dosage": "325",
+      "frequency": "once daily",
+      "times": [
+        "08:00"
+      ],
+      "start_date": "2025-10-05T20:00:20.218692",
+      "end_date": null,
+      "instructions": "",
+      "prescriber": "Self-managed"
+    }
+  ]
+}

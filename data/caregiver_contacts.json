@@ -1,0 +1,8 @@
+{
+  "patient_001": {
+    "name": "John Caregiver",
+    "phone": "+1-555-0123",
+    "email": "john.caregiver@email.com",
+    "relationship": "son"
+  }
+}
