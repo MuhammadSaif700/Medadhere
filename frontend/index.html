@@ -1619,9 +1619,9 @@
 
                     {/* Schedule Modal */}
                     {showScheduleModal && selectedPill && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowScheduleModal(false)}>
-                            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                                <div className="bg-blue-600 text-white p-6 rounded-t-lg">
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setShowScheduleModal(false)}>
+                            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+                                <div className="bg-blue-600 text-white p-6 rounded-t-lg flex-shrink-0">
                                     <h3 className="text-2xl font-bold flex items-center">
                                         <i className="fas fa-calendar-plus mr-3"></i>
                                         Add to Medication Schedule
@@ -1629,7 +1629,7 @@
                                     <p className="mt-2 opacity-90">Configure when and how often you take this medication</p>
                                 </div>
 
-                                <div className="p-6 space-y-6">
+                                <div className="p-6 space-y-6 overflow-y-auto flex-1">
                                     {/* Medication Info */}
                                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                                         <h4 className="font-bold text-gray-800 text-lg">{selectedPill.name}</h4>
@@ -1708,19 +1708,19 @@
                                     </div>
                                 </div>
 
-                                {/* Modal Footer */}
-                                <div className="bg-gray-50 px-6 py-4 rounded-b-lg flex space-x-3">
+                                {/* Modal Footer - Fixed at bottom */}
+                                <div className="bg-gray-50 px-6 py-4 rounded-b-lg flex space-x-3 flex-shrink-0 border-t border-gray-200">
                                     <button
                                         onClick={() => setShowScheduleModal(false)}
                                         disabled={addingToSchedule}
-                                        className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors disabled:opacity-50"
+                                        className="flex-1 px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors disabled:opacity-50 font-medium"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         onClick={handleSubmitSchedule}
                                         disabled={addingToSchedule}
-                                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                                        className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 font-medium"
                                     >
                                         {addingToSchedule ? (
                                             <>
