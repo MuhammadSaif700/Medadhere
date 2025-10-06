@@ -110,19 +110,19 @@ Once deployment completes, test these URLs:
 
 ### Health Check
 ```
-https://medadhere-backend.azurewebsites.net/health
+https://medadhere-backend-azc7a8eyd8ggbadx.centralindia-01.azurewebsites.net/health
 ```
 Expected: `{"status":"healthy","service":"MedAdhere API"}`
 
 ### API Documentation
 ```
-https://medadhere-backend.azurewebsites.net/docs
+https://medadhere-backend-azc7a8eyd8ggbadx.centralindia-01.azurewebsites.net/docs
 ```
 Expected: Swagger UI with all endpoints
 
 ### Test API
 ```
-https://medadhere-backend.azurewebsites.net/
+https://medadhere-backend-azc7a8eyd8ggbadx.centralindia-01.azurewebsites.net/
 ```
 Expected: `{"message":"Welcome to MedAdhere API","version":"1.0.0"}`
 

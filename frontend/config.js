@@ -9,7 +9,7 @@ const API_CONFIG = {
     // Automatically detect environment
     baseURL: window.location.hostname === 'localhost' 
         ? 'http://localhost:8010'  // Local development
-        : 'https://medadhere-backend.azurewebsites.net',  // Production (Azure)
+        : 'https://medadhere-backend-azc7a8eyd8ggbadx.centralindia-01.azurewebsites.net',  // Production (Azure)
     
     timeout: 30000,  // 30 seconds timeout
     
