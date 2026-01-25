@@ -3,8 +3,6 @@
 
 MedAdhere is a medication adherence system designed for users to track their medications and manage their routines for taking medicine.It provides a feature to identify your pill, create your schedule, and provide a dashboard to track your records.It is the web based application design for medication assitance.
 
-------
-
 
 ##  Features 
 
@@ -18,7 +16,6 @@ MedAdhere is a medication adherence system designed for users to track their med
 
 **Medicines Information**
 
-------
 
 ##  Tech Stack
 
@@ -34,8 +31,6 @@ MedAdhere is a medication adherence system designed for users to track their med
 - Json
 
 - FAST API
-
-------
 
 
 ##  Quick Start
@@ -83,10 +78,6 @@ cd frontendcd
 python -m http.server 3000
 
 ``````
-
-> 💻 Desktop App: http://localhost:3000
-
-> 📱 Mobile App: http://localhost:3000/mobile.html>
 
 
 ##  Contributing
