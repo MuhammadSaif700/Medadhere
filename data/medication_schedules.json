@@ -1,1 +1,28 @@
-{}
+{
+  "patient_001": [
+    {
+      "medication_name": "PANADOL",
+      "dosage": "160 mg/5mL",
+      "frequency": "once daily",
+      "times": [
+        "08:00"
+      ],
+      "start_date": "2026-02-01T18:54:14.943000+00:00",
+      "end_date": null,
+      "instructions": "",
+      "prescriber": null
+    },
+    {
+      "medication_name": "aspirin",
+      "dosage": "325",
+      "frequency": "once daily",
+      "times": [
+        "08:00"
+      ],
+      "start_date": "2026-02-01T18:54:49.262958",
+      "end_date": null,
+      "instructions": "",
+      "prescriber": "Self-managed"
+    }
+  ]
+}

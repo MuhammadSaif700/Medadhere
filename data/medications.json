@@ -1,1 +1,19 @@
-{}
+{
+  "0": {
+    "name": "PANADOL",
+    "generic_name": "PANADOL",
+    "dosage": "160 mg/5mL",
+    "strength": "160 mg/5mL",
+    "manufacturer": "Haleon US Holdings LLC",
+    "form": "Tablet"
+  },
+  "1": {
+    "name": "aspirin",
+    "dosage": "325",
+    "generic_name": "aspirin",
+    "shape": "unknown",
+    "color": "unknown",
+    "manufacturer": "Unknown",
+    "description": "Custom medication"
+  }
+}
