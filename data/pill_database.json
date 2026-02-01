@@ -1,1 +1,32 @@
-{}
+{
+  "aspirin_325mg": {
+    "name": "Aspirin",
+    "dosage": "325mg",
+    "shape": "round",
+    "color": "white",
+    "imprint": "BAYER",
+    "size": "standard",
+    "ndc_number": "12345-678-90",
+    "manufacturer": "Bayer"
+  },
+  "ibuprofen_200mg": {
+    "name": "Ibuprofen",
+    "dosage": "200mg",
+    "shape": "oval",
+    "color": "brown",
+    "imprint": "I-2",
+    "size": "standard",
+    "ndc_number": "98765-432-10",
+    "manufacturer": "Generic"
+  },
+  "acetaminophen_500mg": {
+    "name": "Acetaminophen",
+    "dosage": "500mg",
+    "shape": "capsule",
+    "color": "red_white",
+    "imprint": "TYLENOL",
+    "size": "standard",
+    "ndc_number": "11111-222-33",
+    "manufacturer": "Johnson & Johnson"
+  }
+}

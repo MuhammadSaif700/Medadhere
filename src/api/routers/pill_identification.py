@@ -36,7 +36,7 @@ class LogDoseRequest(BaseModel):
 @router.post("/identify", response_model=PillIdentificationResponse)
 async def identify_pill(
     image: UploadFile = File(...),
-    confidence_threshold: float = 0.5
+    confidence_threshold: float = 0.3
 ):
     """
     Identify a pill from an uploaded image using OCR and external medical databases
